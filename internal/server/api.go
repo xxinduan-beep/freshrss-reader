@@ -62,7 +62,19 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("POST /api/desktop/window/attention", a.requestAttention)
 	mux.HandleFunc("GET /api/desktop/window/state", a.windowState)
 	mux.HandleFunc("GET /api/desktop/fonts", a.fonts)
+	mux.HandleFunc("POST /api/desktop/log", a.logMessage)
 	return mux
+}
+
+func (a *API) logMessage(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Message string `json:"message"`
+	}
+	if !readJSON(w, r, &body) {
+		return
+	}
+	log.Printf("renderer: %s", body.Message)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) boot(w http.ResponseWriter, r *http.Request) {

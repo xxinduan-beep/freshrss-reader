@@ -8,6 +8,8 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -89,8 +91,12 @@ func assetHandler() http.Handler {
 // assetMiddleware routes /api/desktop requests to the Go API and leaves
 // everything else (static assets + the Wails runtime) to the asset server.
 func assetMiddleware(api http.Handler) application.Middleware {
+	debug := os.Getenv("FRSS_DEBUG") != ""
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if debug {
+				log.Printf("asset %s %s", r.Method, r.URL.Path)
+			}
 			switch {
 			case strings.HasPrefix(r.URL.Path, "/wails"):
 				next.ServeHTTP(w, r)
@@ -127,6 +133,10 @@ func createWindow(app *application.App, store *settings.Store) application.Windo
 		MinHeight:        600,
 		URL:              "/",
 		BackgroundColour: backgroundColour(store),
+		// The renderer draws its own window controls (nav.tsx) and drag
+		// region (--wails-draggable in dist/styles/global.css), mirroring
+		// the Electron frame:false behaviour.
+		Frameless: os.Getenv("FRSS_NATIVE_FRAME") == "" && runtime.GOOS != "darwin",
 	}
 	if x := store.Get("windowX"); x != nil {
 		opts.X = store.GetInt("windowX", 0)

@@ -68,7 +68,24 @@ async function api(path: string, body?: any): Promise<any> {
     })
     if (resp.status === 204) return null
     const text = await resp.text()
-    return text ? JSON.parse(text) : null
+    try {
+        return text ? JSON.parse(text) : null
+    } catch (e) {
+        fetch("/api/desktop/log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message:
+                    "api " +
+                    path +
+                    " status=" +
+                    resp.status +
+                    " body=" +
+                    text.slice(0, 120),
+            }),
+        })
+        throw e
+    }
 }
 
 // Blocking variant for legacy synchronous getters.

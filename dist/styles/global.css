@@ -145,6 +145,7 @@ body.linux {
 #root > nav {
     height: var(--navHeight);
     -webkit-app-region: drag;
+    --wails-draggable: drag;
     user-select: none;
     overflow: hidden;
 }

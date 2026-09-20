@@ -29,5 +29,11 @@ for f in "$WAILS_ROOT"/usr/lib/x86_64-linux-gnu/*; do
 done
 mount --bind /tmp/wl-ovl /usr/lib/x86_64-linux-gnu
 export WEBKIT_INJECTED_BUNDLE_PATH="$WAILS_ROOT/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/injected-bundle/"
+# WSLg: the virtual GPU exposes no usable dma-buf; force software rendering
+# and an X11-capable GTK backend or the window never paints.
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
+export WEBKIT_DISABLE_COMPOSITING_MODE=1
+export GDK_BACKEND=x11,wayland
+export XDG_CACHE_HOME="$XDG_CACHE_HOME"
 exec "$APP" "$@"
 ' overlay "$WAILS_ROOT" "$APP" "$@"

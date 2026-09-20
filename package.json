@@ -12,7 +12,8 @@
   "author": "FreshRSS Reader contributors",
   "license": "BSD-3-Clause",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./src/bridges/wails/index.ts"
   ],
   "repository": "github:yang991178/fluent-reader",
   "devDependencies": {
