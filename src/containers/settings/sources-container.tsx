@@ -4,7 +4,6 @@ import { createSelector } from "reselect"
 import { RootState } from "../../scripts/reducer"
 import SourcesTab from "../../components/settings/sources"
 import {
-    addSource,
     RSSSource,
     updateSource,
     deleteSource,
@@ -12,7 +11,7 @@ import {
     deleteSources,
     toggleSourceHidden,
 } from "../../scripts/models/source"
-import { importOPML, exportOPML } from "../../scripts/models/group"
+import { exportOPML } from "../../scripts/models/group"
 import { AppDispatch, validateFavicon } from "../../scripts/utils"
 import { saveSettings, toggleSettings } from "../../scripts/models/app"
 import { SyncService } from "../../schema-types"
@@ -34,7 +33,6 @@ const mapStateToProps = createSelector(
 const mapDispatchToProps = (dispatch: AppDispatch) => {
     return {
         acknowledgeSIDs: () => dispatch(toggleSettings(true)),
-        addSource: (url: string) => dispatch(addSource(url)),
         updateSourceName: (source: RSSSource, name: string) => {
             dispatch(updateSource({ ...source, name: name } as RSSSource))
         },
@@ -66,7 +64,6 @@ const mapDispatchToProps = (dispatch: AppDispatch) => {
         deleteSource: (source: RSSSource) => dispatch(deleteSource(source)),
         deleteSources: (sources: RSSSource[]) =>
             dispatch(deleteSources(sources)),
-        importOPML: () => dispatch(importOPML()),
         exportOPML: () => dispatch(exportOPML()),
         toggleSourceHidden: (source: RSSSource) =>
             dispatch(toggleSourceHidden(source)),

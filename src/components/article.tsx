@@ -17,7 +17,7 @@ import {
     SourceTextDirection,
 } from "../scripts/models/source"
 import { shareSubmenu } from "./context-menu"
-import { platformCtrl, decodeFetchResponse } from "../scripts/utils"
+import { platformCtrl } from "../scripts/utils"
 import { Spinner } from "@fluentui/react-components"
 
 const FONT_SIZE_OPTIONS = [12, 13, 14, 15, 16, 17, 18, 19, 20]
@@ -45,8 +45,6 @@ type ArticleState = {
     fontFamily: string
     fontSize: number
     loadWebpage: boolean
-    loadFull: boolean
-    fullContent: string
     loaded: boolean
     error: boolean
     errorDescription: string
@@ -61,8 +59,6 @@ class Article extends React.Component<ArticleProps, ArticleState> {
             fontFamily: window.settings.getFont(),
             fontSize: window.settings.getFontSize(),
             loadWebpage: props.source.openTarget === SourceOpenTarget.Webpage,
-            loadFull: props.source.openTarget === SourceOpenTarget.FullContent,
-            fullContent: "",
             loaded: false,
             error: false,
             errorDescription: "",
@@ -70,8 +66,6 @@ class Article extends React.Component<ArticleProps, ArticleState> {
         window.utils.addWebviewContextListener(this.contextMenuHandler)
         window.utils.addWebviewKeydownListener(this.keyDownHandler)
         window.utils.addWebviewErrorListener(this.webviewError)
-        if (props.source.openTarget === SourceOpenTarget.FullContent)
-            this.loadFull()
     }
 
     setFontSize = (size: number) => {
@@ -225,10 +219,6 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                 case "L":
                     this.toggleWebpage()
                     break
-                case "w":
-                case "W":
-                    this.toggleFull()
-                    break
                 case "H":
                 case "h":
                     if (!input.meta) this.props.toggleHidden(this.props.item)
@@ -261,8 +251,6 @@ class Article extends React.Component<ArticleProps, ArticleState> {
         if (this.webview) {
             this.setState({ loaded: false, error: false })
             this.webview.reload()
-        } else if (this.state.loadFull) {
-            this.loadFull()
         }
     }
 
@@ -287,12 +275,7 @@ class Article extends React.Component<ArticleProps, ArticleState> {
             this.setState({
                 loadWebpage:
                     this.props.source.openTarget === SourceOpenTarget.Webpage,
-                loadFull:
-                    this.props.source.openTarget ===
-                    SourceOpenTarget.FullContent,
             })
-            if (this.props.source.openTarget === SourceOpenTarget.FullContent)
-                this.loadFull()
         }
         this.componentDidMount()
     }
@@ -311,48 +294,12 @@ class Article extends React.Component<ArticleProps, ArticleState> {
             this.props.item.link.startsWith("https://") ||
             this.props.item.link.startsWith("http://")
         ) {
-            this.setState({ loadWebpage: true, loadFull: false })
-        }
-    }
-
-    toggleFull = () => {
-        if (this.state.loadFull) {
-            this.setState({ loadFull: false })
-        } else if (
-            this.props.item.link.startsWith("https://") ||
-            this.props.item.link.startsWith("http://")
-        ) {
-            this.setState({ loadFull: true, loadWebpage: false })
-            this.loadFull()
-        }
-    }
-    loadFull = async () => {
-        this.setState({ fullContent: "", loaded: false, error: false })
-        const link = this.props.item.link
-        try {
-            const result = await fetch(link)
-            if (!result || !result.ok) throw new Error()
-            const html = await decodeFetchResponse(result, true)
-            if (link === this.props.item.link) {
-                this.setState({ fullContent: html })
-            }
-        } catch {
-            if (link === this.props.item.link) {
-                this.setState({
-                    loaded: true,
-                    error: true,
-                    errorDescription: "MERCURY_PARSER_FAILURE",
-                })
-            }
+            this.setState({ loadWebpage: true })
         }
     }
 
     articleView = () => {
-        const a = encodeURIComponent(
-            this.state.loadFull
-                ? this.state.fullContent
-                : this.props.item.content
-        )
+        const a = encodeURIComponent(this.props.item.content)
         const h = encodeURIComponent(
             renderToString(
                 <>
@@ -371,7 +318,7 @@ class Article extends React.Component<ArticleProps, ArticleState> {
             this.state.fontFamily
         )}&s=${this.state.fontSize}&d=${this.props.source.textDir}&u=${
             this.props.item.link
-        }&m=${this.state.loadFull ? 1 : 0}`
+        }`
     }
 
     render = () => (
@@ -440,12 +387,6 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                         }
                     />
                     <CommandBarButton
-                        title={intl.get("article.loadFull")}
-                        className={this.state.loadFull ? "active" : ""}
-                        iconProps={{ iconName: "RawSource" }}
-                        onClick={this.toggleFull}
-                    />
-                    <CommandBarButton
                         title={intl.get("article.loadWebpage")}
                         className={this.state.loadWebpage ? "active" : ""}
                         iconProps={{ iconName: "Globe" }}
@@ -466,25 +407,19 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                     />
                 </Stack>
             </Stack>
-            {(!this.state.loadFull || this.state.fullContent) && (
-                <webview
-                    id="article"
-                    className={this.state.error ? "error" : ""}
-                    key={
-                        this.props.item._id +
-                        (this.state.loadWebpage ? "_" : "") +
-                        (this.state.loadFull ? "__" : "")
-                    }
-                    src={
-                        this.state.loadWebpage
-                            ? this.props.item.link
-                            : this.articleView()
-                    }
-                    allowpopups={"true" as unknown as boolean}
-                    webpreferences="contextIsolation,disableDialogs,autoplayPolicy=document-user-activation-required"
-                    partition={this.state.loadWebpage ? "sandbox" : undefined}
-                />
-            )}
+            <webview
+                id="article"
+                className={this.state.error ? "error" : ""}
+                key={this.props.item._id + (this.state.loadWebpage ? "_" : "")}
+                src={
+                    this.state.loadWebpage
+                        ? this.props.item.link
+                        : this.articleView()
+                }
+                allowpopups={"true" as unknown as boolean}
+                webpreferences="contextIsolation,disableDialogs,autoplayPolicy=document-user-activation-required"
+                partition={this.state.loadWebpage ? "sandbox" : undefined}
+            />
             {this.state.error && (
                 <Stack
                     className="error-prompt"

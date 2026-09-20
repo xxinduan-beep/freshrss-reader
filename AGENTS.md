@@ -1,8 +1,10 @@
-# Fluent Reader
+# FreshRSS Reader
 
 ## Overview
 
-Fluent Reader is a **modern desktop RSS reader** built with **Electron + React + Redux + TypeScript**. It targets Windows, macOS (including Mac App Store), and Linux. The UI uses Microsoft's **Fluent UI (v7)** component library. Data is stored client-side using **Lovefield** (SQL-like browser DB) and **NeDB**. Articles are parsed with **Mercury Parser** and fetched via **rss-parser**. Settings are persisted with **electron-store**.
+FreshRSS Reader is a **FreshRSS-specific desktop RSS client** forked from **Fluent Reader**, built with **Electron + React + Redux + TypeScript**. It targets Linux (AppImage), Windows (NSIS), and macOS (dmg). The UI uses Microsoft's **Fluent UI (v7)** component library. Subscriptions and article state are synced via the **Google Reader API** (as implemented by FreshRSS at `/api/greader.php`); articles are cached locally using **Lovefield** (SQL-like browser DB). Settings are persisted with **electron-store**.
+
+Local RSS fetching, the rules engine, full-content scraping, auto-update, and all non-FreshRSS service backends (Fever, Feedbin, Inoreader, Miniflux, Nextcloud) have been removed relative to upstream Fluent Reader.
 
 The repository is ~80 TypeScript/TSX source files under `src/`. There is no ESLint — formatting is handled solely by **Prettier**.
 
@@ -57,48 +59,32 @@ npm run format
 
 **Always run `npx prettier --check .` after making changes** to ensure code style compliance. The Prettier config is in `.prettierrc.yml`: 4-space tabs, no semicolons, JSX bracket on same line, arrow parens avoided, consistent quote props. `.prettierignore` excludes `dist/`, `bin/`, `node_modules/`, HTML, Markdown, and most JSON (except `src/**/*.json`).
 
-### Tests
-
-Basic validation of code changes consists of:
-1. `npm run build` — must compile without errors.
-2. `npx prettier --check .` — must pass with no formatting violations.
-
-A private suite of E2E tests is available for project maintainers. Run the suite from the repository root:
+### Typecheck
 
 ```bash
-npm --prefix tests/e2e test
+npx tsc --noEmit
 ```
 
-See `tests/README.md` for test setup details.
+`tsconfig.json` sets `skipLibCheck: true` so this checks `src/` only.
 
-### Packaging (not needed for typical changes)
+### Packaging
 
 - Windows: `npm run package-win`
 - macOS: `npm run package-mac`
 - Linux: `npm run package-linux`
-- Mac App Store: `npm run package-mas` (requires provisioning profile and entitlements in `build/`)
-
-## CI/CD
-
-Two GitHub Actions workflows in `.github/workflows/`:
-
-- **`release-main.yml`** — Triggered on version tags (`v*`). Runs on `windows-latest`. Steps: `npm install` → `npm run build` → `npm run package-win-ci`. Uploads `.exe` and `.zip` to a draft GitHub release.
-- **`release-linux.yml`** — Triggered when a release is published. Runs on `ubuntu-latest`. Steps: `npm install` → `npm run build` → `npm run package-linux`. Uploads `.AppImage`.
-
-Both CI pipelines run `npm install` then `npm run build`. There are no lint or test steps in CI.
 
 ## Project Layout
 
 ### Root files
 | File | Purpose |
 |---|---|
-| `package.json` | Dependencies, scripts, metadata (v1.1.4) |
+| `package.json` | Dependencies, scripts, metadata (v1.0.0) |
 | `webpack.config.js` | Three webpack configs: main, preload, renderer |
-| `tsconfig.json` | TypeScript: JSX=react, target=ES2019, module=CommonJS, resolveJsonModule |
+| `tsconfig.json` | TypeScript: JSX=react, target=ESNext, skipLibCheck |
 | `electron-builder.yml` | Electron Builder config for Win/Mac/Linux distribution |
-| `electron-builder-mas.yml` | Electron Builder config for Mac App Store |
 | `.prettierrc.yml` | Prettier formatting rules |
 | `.prettierignore` | Files excluded from Prettier |
+| `patch-griffel.js` | postinstall patch for @griffel/webpack-plugin on Windows |
 
 ### `src/` — All source code
 
@@ -107,17 +93,17 @@ Both CI pipelines run `npm install` then `npm run build`. There are no lint or t
 | `electron.ts` | **Electron main process** entry. Creates app menu, initializes `WindowManager`. |
 | `preload.ts` | **Preload script**. Exposes `settingsBridge` and `utilsBridge` via `contextBridge`. |
 | `index.tsx` | **Renderer entry**. Mounts React `<Root>` with Redux `<Provider>`. |
-| `schema-types.ts` | Shared TypeScript enums and types (ViewType, ThemeSettings, etc.) |
+| `schema-types.ts` | Shared TypeScript enums and types (ViewType, SyncService, etc.). |
 | `bridges/` | IPC bridges between renderer and main process (`settings.ts`, `utils.ts`). |
-| `main/` | Electron main-process modules: `window.ts` (BrowserWindow), `settings.ts` (electron-store + IPC handlers), `utils.ts` (IPC utilities), `touchbar.ts`, `update-scripts.ts`. |
+| `main/` | Electron main-process modules: `window.ts` (BrowserWindow), `settings.ts` (electron-store + IPC handlers), `utils.ts` (IPC utilities), `touchbar.ts`. |
 | `scripts/` | Renderer-side logic (runs in browser context). |
 | `scripts/reducer.ts` | Root Redux store — combines: sources, items, feeds, groups, page, service, app. |
-| `scripts/settings.ts` | Theme management, locale setup, Fluent UI theming. |
-| `scripts/db.ts` | Lovefield database schema definitions (sources, items). |
+| `scripts/settings.ts` | Theme management, locale setup, Fluent UI theming, backup import/export. |
+| `scripts/db.ts` | Lovefield database schema definitions (sources, items; `serviceRef` columns power service diffing). |
 | `scripts/utils.ts` | Shared utilities and type helpers. |
-| `scripts/models/` | Redux slices: `app.ts`, `feed.ts`, `group.ts`, `item.ts`, `page.ts`, `rule.ts`, `service.ts`, `source.ts`, plus `services/` for RSS service integrations. |
+| `scripts/models/` | Redux slices: `app.ts`, `feed.ts`, `group.ts`, `item.ts`, `page.ts`, `service.ts`, `source.ts`, plus `services/freshrss.ts` — the Google Reader API client for FreshRSS (ClientLogin auth, subscription/list, stream/items/ids, stream/contents, edit-tag, mark-all-as-read). |
 | `scripts/i18n/` | Internationalization. `_locales.ts` maps locale codes to JSON files. 19 languages. Translations are JSON files (e.g., `en-US.json`). Uses `react-intl-universal`. |
-| `components/` | React UI components. `root.tsx` is the top-level layout. Sub-dirs: `cards/` (article card variants), `feeds/` (feed list views), `settings/` (settings panels), `utils/` (shared UI helpers). |
+| `components/` | React UI components. `root.tsx` is the top-level layout. Sub-dirs: `cards/` (article card variants), `feeds/` (feed list views), `settings/` (settings panels; `settings/services/freshrss.tsx` is the FreshRSS login form), `utils/` (shared UI helpers). |
 | `containers/` | Redux-connected container components that map state/dispatch to component props. |
 
 ### `dist/` — Build output + static assets
@@ -126,14 +112,15 @@ The `dist/` directory contains **both webpack output and checked-in static asset
 
 ### `build/` — Packaging resources
 
-Contains app icons (`build/icons/`), macOS entitlements plists, provisioning profiles, and `resignAndPackage.sh` for Mac App Store builds. Also has `build/appx/` for Windows Store assets.
+Contains app icons (`build/icons/`) and the macOS entitlements plist.
 
 ## Architecture Notes
 
 - **IPC pattern**: The renderer never imports Electron directly. All Electron APIs are accessed through `src/bridges/` which are exposed via `contextBridge` in `preload.ts`. Settings state flows: renderer → bridge (ipcRenderer) → main/settings.ts (ipcMain handlers) → electron-store.
 - **State management**: Redux with `redux-thunk` for async actions. The store shape is defined by `RootState` in `scripts/reducer.ts`. Each model file in `scripts/models/` exports its own reducer, action types, and thunk action creators.
+- **Service sync**: `syncWithService()` in `scripts/models/service.ts` orchestrates reauthenticate → updateSources → syncItems → fetchItems. Item construction happens directly in `services/freshrss.ts` (no local RSS parsing path exists).
 - **i18n**: To add or modify translations, edit JSON files in `src/scripts/i18n/`. Register new locales in `_locales.ts`.
-- **RSS service integrations**: Located in `src/scripts/models/services/` (logic) and `src/components/settings/services/` (UI). Supported: Fever, Google Reader API (GReader), Inoreader, Feedbin, Miniflux, Nextcloud.
+- **Local DB**: All sources carry a `serviceRef` (server id); lovefield `serviceRef` columns drive read/star diffing in `syncItems` and date-based mark-all-read.
 
 ## Key Conventions
 
@@ -152,8 +139,6 @@ After any code change, always run:
 ```bash
 npm install && npm run build && npx prettier --check .
 ```
-All three must succeed. If the build fails, fix TypeScript errors. If prettier fails, run `npm run format` then verify.
-
-Run the E2E test suite if available at the end of sessions to check for regressions, and update the test suite to cover any new features built.
+All three must succeed. Also run `npx tsc --noEmit` to typecheck `src/`. If the build fails, fix TypeScript errors. If prettier fails, run `npm run format` then verify.
 
 Trust these instructions. Only search the codebase if information here is incomplete or found to be incorrect.

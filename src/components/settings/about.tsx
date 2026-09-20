@@ -8,16 +8,17 @@ const AboutTab: React.FC = () => {
             <Stack className="settings-about" horizontalAlign="center">
                 <img
                     src="icons/logo.svg"
-                    alt="Fluent Reader Logo"
+                    alt="FreshRSS Reader Logo"
                     style={{ width: 120, height: 120 }}
                 />
-                <h3 style={{ fontWeight: 600 }}>Fluent Reader</h3>
+                <h3 style={{ fontWeight: 600 }}>FreshRSS Reader</h3>
                 <small>
                     {intl.get("settings.version")}{" "}
                     {globalThis.utils.getVersion()}
                 </small>
                 <p className="settings-hint">
-                    Copyright © 2020 Haoyuan Liu. All rights reserved.
+                    A FreshRSS-specific desktop client, based on Fluent Reader
+                    by Haoyuan Liu (BSD-3-Clause).
                 </p>
                 <Stack
                     horizontal
@@ -47,10 +48,10 @@ const AboutTab: React.FC = () => {
                         <Link
                             onClick={() =>
                                 globalThis.utils.openExternal(
-                                    "https://github.com/yang991178/fluent-reader/issues"
+                                    "https://freshrss.org"
                                 )
                             }>
-                            {intl.get("settings.feedback")}
+                            FreshRSS
                         </Link>
                     </small>
                 </Stack>

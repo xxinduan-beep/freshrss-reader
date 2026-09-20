@@ -1,16 +1,8 @@
 import intl from "react-intl-universal"
 import * as db from "../db"
 import lf from "lovefield"
+import { fetchFavicon, ActionStatus, AppThunk } from "../utils"
 import {
-    fetchFavicon,
-    ActionStatus,
-    AppThunk,
-    parseRSS,
-    MyParserItem,
-} from "../utils"
-import {
-    RSSItem,
-    insertItems,
     ItemActionTypes,
     FETCH_ITEMS,
     MARK_READ,
@@ -18,14 +10,12 @@ import {
     MARK_ALL_READ,
 } from "./item"
 import { saveSettings } from "./app"
-import { SourceRule } from "./rule"
 import { fixBrokenGroups } from "./group"
 
 export const enum SourceOpenTarget {
     Local,
     Webpage,
     External,
-    FullContent,
 }
 
 export const enum SourceTextDirection {
@@ -44,7 +34,6 @@ export class RSSSource {
     lastFetched: Date
     serviceRef?: string
     fetchFrequency: number // in minutes
-    rules?: SourceRule[]
     textDir: SourceTextDirection
     hidden: boolean
 
@@ -56,65 +45,6 @@ export class RSSSource {
         this.fetchFrequency = 0
         this.textDir = SourceTextDirection.LTR
         this.hidden = false
-    }
-
-    static async fetchMetaData(source: RSSSource) {
-        let feed = await parseRSS(source.url)
-        if (!source.name) {
-            if (feed.title) source.name = feed.title.trim()
-            source.name = source.name || intl.get("sources.untitled")
-        }
-        return feed
-    }
-
-    private static async checkItem(
-        source: RSSSource,
-        item: MyParserItem
-    ): Promise<RSSItem> {
-        let i = new RSSItem(item, source)
-        const items = (await db.itemsDB
-            .select()
-            .from(db.items)
-            .where(
-                lf.op.and(
-                    db.items.source.eq(i.source),
-                    db.items.title.eq(i.title),
-                    db.items.date.eq(i.date)
-                )
-            )
-            .limit(1)
-            .exec()) as RSSItem[]
-        if (items.length === 0) {
-            RSSItem.parseContent(i, item)
-            if (source.rules) SourceRule.applyAll(source.rules, i)
-            return i
-        } else {
-            return null
-        }
-    }
-
-    static checkItems(
-        source: RSSSource,
-        items: MyParserItem[]
-    ): Promise<RSSItem[]> {
-        return new Promise<RSSItem[]>((resolve, reject) => {
-            let p = new Array<Promise<RSSItem>>()
-            for (let item of items) {
-                p.push(this.checkItem(source, item))
-            }
-            Promise.all(p)
-                .then(values => {
-                    resolve(values.filter(v => v != null))
-                })
-                .catch(e => {
-                    reject(e)
-                })
-        })
-    }
-
-    static async fetchItems(source: RSSSource) {
-        let feed = await parseRSS(source.url)
-        return await this.checkItems(source, feed.items)
     }
 }
 
@@ -245,14 +175,6 @@ export function initSources(): AppThunk<Promise<void>> {
     }
 }
 
-export function addSourceRequest(batch: boolean): SourceActionTypes {
-    return {
-        type: ADD_SOURCE,
-        batch: batch,
-        status: ActionStatus.Request,
-    }
-}
-
 export function addSourceSuccess(
     source: RSSSource,
     batch: boolean
@@ -262,15 +184,6 @@ export function addSourceSuccess(
         batch: batch,
         status: ActionStatus.Success,
         source: source,
-    }
-}
-
-export function addSourceFailure(err, batch: boolean): SourceActionTypes {
-    return {
-        type: ADD_SOURCE,
-        batch: batch,
-        status: ActionStatus.Failure,
-        err: err,
     }
 }
 
@@ -295,42 +208,6 @@ export function insertSource(source: RSSSource): AppThunk<Promise<RSSSource>> {
                 }
             })
         })
-    }
-}
-
-export function addSource(
-    url: string,
-    name: string = null,
-    batch = false
-): AppThunk<Promise<number>> {
-    return async (dispatch, getState) => {
-        const app = getState().app
-        if (app.sourceInit) {
-            dispatch(addSourceRequest(batch))
-            const source = new RSSSource(url, name)
-            try {
-                const feed = await RSSSource.fetchMetaData(source)
-                const inserted = await dispatch(insertSource(source))
-                inserted.unreadCount = feed.items.length
-                dispatch(addSourceSuccess(inserted, batch))
-                window.settings.saveGroups(getState().groups)
-                dispatch(updateFavicon([inserted.sid]))
-                const items = await RSSSource.checkItems(inserted, feed.items)
-                await insertItems(items)
-                return inserted.sid
-            } catch (e) {
-                dispatch(addSourceFailure(e, batch))
-                if (!batch) {
-                    window.utils.showErrorBox(
-                        intl.get("sources.errorAdd"),
-                        String(e),
-                        intl.get("context.copy")
-                    )
-                }
-                throw e
-            }
-        }
-        throw new Error("Sources not initialized.")
     }
 }
 

@@ -117,13 +117,6 @@ const settingsBridge = {
         ipcRenderer.invoke("set-view-configs", view, configs)
     },
 
-    getNeDBStatus: (): boolean => {
-        return ipcRenderer.sendSync("get-nedb-status")
-    },
-    setNeDBStatus: (flag: boolean) => {
-        ipcRenderer.invoke("set-nedb-status", flag)
-    },
-
     getUnreadSourcesOnly: (): boolean => {
         return ipcRenderer.sendSync("get-unread-sources-only")
     },

@@ -6,7 +6,8 @@
       "target": "ESNext",
       "module": "ESNext",
       "moduleResolution": "Bundler",
-      "strict": false
+      "strict": false,
+      "skipLibCheck": true
     },
     "exclude": ["node_modules", "tests"]
 }

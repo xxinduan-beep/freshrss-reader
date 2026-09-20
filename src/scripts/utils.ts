@@ -2,7 +2,6 @@ import intl from "react-intl-universal"
 import { ThunkAction, ThunkDispatch } from "redux-thunk"
 import { AnyAction } from "redux"
 import { RootState } from "./reducer"
-import Parser from "rss-parser"
 import Url from "url"
 import { SearchEngines } from "../schema-types"
 
@@ -21,77 +20,6 @@ export type AppThunk<ReturnType = void> = ThunkAction<
 >
 
 export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>
-
-const rssParser = new Parser({
-    customFields: {
-        item: [
-            "thumb",
-            "image",
-            ["content:encoded", "fullContent"],
-            ["media:content", "mediaContent", { keepArray: true }],
-        ],
-    },
-})
-type extractGeneric<Type> = Type extends Parser<infer _, infer U> ? U : never
-export type MyParserItem = extractGeneric<typeof rssParser> & Parser.Item
-
-const CHARSET_RE = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i
-const XML_ENCODING_RE = /^<\?xml.+encoding="(.+?)".*?\?>/i
-export async function decodeFetchResponse(response: Response, isHTML = false) {
-    const buffer = await response.arrayBuffer()
-    let ctype =
-        response.headers.has("content-type") &&
-        response.headers.get("content-type")
-    let charset =
-        ctype && CHARSET_RE.test(ctype) ? CHARSET_RE.exec(ctype)[1] : undefined
-    let content = new TextDecoder(charset).decode(buffer)
-    if (charset === undefined) {
-        if (isHTML) {
-            const dom = domParser.parseFromString(content, "text/html")
-            charset = dom
-                .querySelector("meta[charset]")
-                ?.getAttribute("charset")
-                ?.toLowerCase()
-            if (!charset) {
-                ctype = dom
-                    .querySelector("meta[http-equiv='Content-Type']")
-                    ?.getAttribute("content")
-                charset =
-                    ctype &&
-                    CHARSET_RE.test(ctype) &&
-                    CHARSET_RE.exec(ctype)[1].toLowerCase()
-            }
-        } else {
-            charset =
-                XML_ENCODING_RE.test(content) &&
-                XML_ENCODING_RE.exec(content)[1].toLowerCase()
-        }
-        if (charset && charset !== "utf-8" && charset !== "utf8") {
-            content = new TextDecoder(charset).decode(buffer)
-        }
-    }
-    return content
-}
-
-export async function parseRSS(url: string) {
-    let result: Response
-    try {
-        result = await fetch(url, { credentials: "omit" })
-    } catch {
-        throw new Error(intl.get("log.networkError"))
-    }
-    if (result && result.ok) {
-        try {
-            return await rssParser.parseString(
-                await decodeFetchResponse(result)
-            )
-        } catch {
-            throw new Error(intl.get("log.parseError"))
-        }
-    } else {
-        throw new Error(result.status + " " + result.statusText)
-    }
-}
 
 export const domParser = new DOMParser()
 

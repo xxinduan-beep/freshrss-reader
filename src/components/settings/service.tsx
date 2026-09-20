@@ -2,12 +2,7 @@ import * as React from "react"
 import intl from "react-intl-universal"
 import { ServiceConfigs, SyncService } from "../../schema-types"
 import { Stack, Icon, Link, Dropdown, IDropdownOption } from "@fluentui/react"
-import FeverConfigsTab from "./services/fever"
-import FeedbinConfigsTab from "./services/feedbin"
-import GReaderConfigsTab from "./services/greader"
-import InoreaderConfigsTab from "./services/inoreader"
-import MinifluxConfigsTab from "./services/miniflux"
-import NextcloudConfigsTab from "./services/nextcloud"
+import FreshRSSConfigsTab from "./services/freshrss"
 
 type ServiceTabProps = {
     configs: ServiceConfigs
@@ -39,23 +34,11 @@ export class ServiceTab extends React.Component<
     }
 
     serviceOptions = (): IDropdownOption[] => [
-        { key: SyncService.Fever, text: "Fever API" },
-        { key: SyncService.Feedbin, text: "Feedbin" },
-        { key: SyncService.GReader, text: "Google Reader API (Beta)" },
-        { key: SyncService.Inoreader, text: "Inoreader" },
-        { key: SyncService.Miniflux, text: "Miniflux" },
-        { key: SyncService.Nextcloud, text: "Nextcloud News API" },
-        { key: -1, text: intl.get("service.suggest") },
+        { key: SyncService.FreshRSS, text: "FreshRSS (Google Reader API)" },
     ]
 
     onServiceOptionChange = (_, option: IDropdownOption) => {
-        if (option.key === -1) {
-            window.utils.openExternal(
-                "https://github.com/yang991178/fluent-reader/issues/23"
-            )
-        } else {
-            this.setState({ type: option.key as number })
-        }
+        this.setState({ type: option.key as number })
     }
 
     exitConfigsTab = () => {
@@ -63,52 +46,7 @@ export class ServiceTab extends React.Component<
     }
 
     getConfigsTab = () => {
-        switch (this.state.type) {
-            case SyncService.Fever:
-                return (
-                    <FeverConfigsTab
-                        {...this.props}
-                        exit={this.exitConfigsTab}
-                    />
-                )
-            case SyncService.Feedbin:
-                return (
-                    <FeedbinConfigsTab
-                        {...this.props}
-                        exit={this.exitConfigsTab}
-                    />
-                )
-            case SyncService.GReader:
-                return (
-                    <GReaderConfigsTab
-                        {...this.props}
-                        exit={this.exitConfigsTab}
-                    />
-                )
-            case SyncService.Inoreader:
-                return (
-                    <InoreaderConfigsTab
-                        {...this.props}
-                        exit={this.exitConfigsTab}
-                    />
-                )
-            case SyncService.Miniflux:
-                return (
-                    <MinifluxConfigsTab
-                        {...this.props}
-                        exit={this.exitConfigsTab}
-                    />
-                )
-            case SyncService.Nextcloud:
-                return (
-                    <NextcloudConfigsTab
-                        {...this.props}
-                        exit={this.exitConfigsTab}
-                    />
-                )
-            default:
-                return null
-        }
+        return <FreshRSSConfigsTab {...this.props} exit={this.exitConfigsTab} />
     }
 
     render = () => (
@@ -128,7 +66,7 @@ export class ServiceTab extends React.Component<
                         <Link
                             onClick={() =>
                                 window.utils.openExternal(
-                                    "https://github.com/yang991178/fluent-reader/wiki/Support#services"
+                                    "https://freshrss.github.io/FreshRSS/en/users/06_Mobile_access.html#google-reader-api"
                                 )
                             }
                             style={{ marginLeft: 6 }}>

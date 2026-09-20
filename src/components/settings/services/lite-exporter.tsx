@@ -10,9 +10,7 @@ import {
 import { ServiceConfigs, SyncService } from "../../../schema-types"
 import { renderShareQR } from "../../context-menu"
 import { platformCtrl } from "../../../scripts/utils"
-import { FeverConfigs } from "../../../scripts/models/services/fever"
-import { GReaderConfigs } from "../../../scripts/models/services/greader"
-import { FeedbinConfigs } from "../../../scripts/models/services/feedbin"
+import { FreshRSSConfigs } from "../../../scripts/models/services/freshrss"
 
 type LiteExporterProps = {
     serviceConfigs: ServiceConfigs
@@ -25,30 +23,9 @@ const LiteExporter: React.FunctionComponent<LiteExporterProps> = props => {
     let url = "https://hyliu.me/fr2l/?"
     const params = new URLSearchParams()
     switch (props.serviceConfigs.type) {
-        case SyncService.Fever: {
-            const configs = props.serviceConfigs as FeverConfigs
-            params.set("t", "f")
-            params.set("e", configs.endpoint)
-            params.set("u", configs.username)
-            params.set("k", configs.apiKey)
-            break
-        }
-        case SyncService.GReader:
-        case SyncService.Inoreader: {
-            const configs = props.serviceConfigs as GReaderConfigs
-            params.set("t", configs.type == SyncService.GReader ? "g" : "i")
-            params.set("e", configs.endpoint)
-            params.set("u", configs.username)
-            params.set("p", btoa(configs.password))
-            if (configs.inoreaderId) {
-                params.set("i", configs.inoreaderId)
-                params.set("k", configs.inoreaderKey)
-            }
-            break
-        }
-        case SyncService.Feedbin: {
-            const configs = props.serviceConfigs as FeedbinConfigs
-            params.set("t", "fb")
+        case SyncService.FreshRSS: {
+            const configs = props.serviceConfigs as FreshRSSConfigs
+            params.set("t", "g")
             params.set("e", configs.endpoint)
             params.set("u", configs.username)
             params.set("p", btoa(configs.password))

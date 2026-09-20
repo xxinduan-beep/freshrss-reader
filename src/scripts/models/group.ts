@@ -3,18 +3,12 @@ import {
     SourceActionTypes,
     ADD_SOURCE,
     DELETE_SOURCE,
-    addSource,
     RSSSource,
     SourceState,
 } from "./source"
 import { SourceGroup } from "../../schema-types"
 import { ActionStatus, AppThunk, domParser } from "../utils"
 import { saveSettings } from "./app"
-import {
-    fetchItemsIntermediate,
-    fetchItemsRequest,
-    fetchItemsSuccess,
-} from "./item"
 
 export const CREATE_SOURCE_GROUP = "CREATE_SOURCE_GROUP"
 export const ADD_SOURCE_TO_GROUP = "ADD_SOURCE_TO_GROUP"
@@ -217,99 +211,6 @@ export function fixBrokenGroups(sources: SourceState): AppThunk {
     }
 }
 
-function outlineToSource(
-    outline: Element
-): [ReturnType<typeof addSource>, string] {
-    let url = outline.getAttribute("xmlUrl")
-    let name = outline.getAttribute("text") || outline.getAttribute("title")
-    if (url) {
-        return [addSource(url.trim(), name, true), url]
-    } else {
-        return null
-    }
-}
-
-export function importOPML(): AppThunk {
-    return async dispatch => {
-        const filters = [
-            { name: intl.get("sources.opmlFile"), extensions: ["xml", "opml"] },
-        ]
-        window.utils.showOpenDialog(filters).then(data => {
-            if (data) {
-                dispatch(saveSettings())
-                let doc = domParser
-                    .parseFromString(data, "text/xml")
-                    .getElementsByTagName("body")
-                if (doc.length == 0) {
-                    dispatch(saveSettings())
-                    return
-                }
-                let parseError = doc[0].getElementsByTagName("parsererror")
-                if (parseError.length > 0) {
-                    dispatch(saveSettings())
-                    window.utils.showErrorBox(
-                        intl.get("sources.errorParse"),
-                        intl.get("sources.errorParseHint")
-                    )
-                    return
-                }
-                let sources: [ReturnType<typeof addSource>, number, string][] =
-                    []
-                let errors: [string, any][] = []
-                for (let el of doc[0].children) {
-                    if (el.getAttribute("type") === "rss") {
-                        let source = outlineToSource(el)
-                        if (source) sources.push([source[0], -1, source[1]])
-                    } else if (
-                        el.hasAttribute("text") ||
-                        el.hasAttribute("title")
-                    ) {
-                        let groupName =
-                            el.getAttribute("text") || el.getAttribute("title")
-                        let gid = dispatch(createSourceGroup(groupName))
-                        for (let child of el.children) {
-                            let source = outlineToSource(child)
-                            if (source)
-                                sources.push([source[0], gid, source[1]])
-                        }
-                    }
-                }
-                dispatch(fetchItemsRequest(sources.length))
-                let promises = sources.map(([s, gid, url]) => {
-                    return dispatch(s)
-                        .then(sid => {
-                            if (sid !== null && gid > -1)
-                                dispatch(addSourceToGroup(gid, sid))
-                        })
-                        .catch(err => {
-                            errors.push([url, err])
-                        })
-                        .finally(() => {
-                            dispatch(fetchItemsIntermediate())
-                        })
-                })
-                Promise.allSettled(promises).then(() => {
-                    dispatch(fetchItemsSuccess([], {}))
-                    dispatch(saveSettings())
-                    if (errors.length > 0) {
-                        window.utils.showErrorBox(
-                            intl.get("sources.errorImport", {
-                                count: errors.length,
-                            }),
-                            errors
-                                .map(e => {
-                                    return e[0] + "\n" + String(e[1])
-                                })
-                                .join("\n"),
-                            intl.get("context.copy")
-                        )
-                    }
-                })
-            }
-        })
-    }
-}
-
 function sourceToOutline(source: RSSSource, xml: Document) {
     let outline = xml.createElement("outline")
     outline.setAttribute("text", source.name)
@@ -325,12 +226,12 @@ export function exportOPML(): AppThunk {
             { name: intl.get("sources.opmlFile"), extensions: ["opml"] },
         ]
         window.utils
-            .showSaveDialog(filters, "*/Fluent_Reader_Export.opml")
+            .showSaveDialog(filters, "*/FreshRSS_Reader_Export.opml")
             .then(write => {
                 if (write) {
                     let state = getState()
                     let xml = domParser.parseFromString(
-                        '<?xml version="1.0" encoding="UTF-8"?><opml version="1.0"><head><title>Fluent Reader Export</title></head><body></body></opml>',
+                        '<?xml version="1.0" encoding="UTF-8"?><opml version="1.0"><head><title>FreshRSS Reader Export</title></head><body></body></opml>',
                         "text/xml"
                     )
                     let body = xml.getElementsByTagName("body")[0]

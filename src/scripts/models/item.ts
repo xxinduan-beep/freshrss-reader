@@ -1,15 +1,7 @@
 import * as db from "../db"
 import lf from "lovefield"
-import intl from "react-intl-universal"
-import type { MyParserItem } from "../utils"
-import {
-    domParser,
-    htmlDecode,
-    ActionStatus,
-    AppThunk,
-    platformCtrl,
-} from "../utils"
-import { RSSSource, updateSource, updateUnreadCounts } from "./source"
+import { ActionStatus, AppThunk, platformCtrl } from "../utils"
+import { RSSSource, updateUnreadCounts } from "./source"
 import { FeedActionTypes, INIT_FEED, LOAD_MORE, dismissItems } from "./feed"
 import {
     pushNotification,
@@ -40,67 +32,6 @@ export class RSSItem {
     hidden: boolean
     notify: boolean
     serviceRef?: string
-
-    constructor(item: MyParserItem, source: RSSSource) {
-        for (let field of ["title", "link", "creator"]) {
-            const content = item[field]
-            if (content && typeof content !== "string") delete item[field]
-        }
-        this.source = source.sid
-        this.title = item.title || intl.get("article.untitled")
-        this.link = item.link || ""
-        this.fetchedDate = new Date()
-        this.date = new Date(item.isoDate ?? item.pubDate ?? this.fetchedDate)
-        this.creator = item.creator
-        this.hasRead = false
-        this.starred = false
-        this.hidden = false
-        this.notify = false
-    }
-
-    static parseContent(item: RSSItem, parsed: MyParserItem) {
-        for (let field of ["thumb", "content", "fullContent"]) {
-            const content = parsed[field]
-            if (content && typeof content !== "string") delete parsed[field]
-        }
-        if (parsed.fullContent) {
-            item.content = parsed.fullContent
-            item.snippet = htmlDecode(parsed.fullContent)
-        } else {
-            item.content = parsed.content || ""
-            item.snippet = htmlDecode(parsed.contentSnippet || "")
-        }
-        if (parsed.thumb) {
-            item.thumb = parsed.thumb
-        } else if (parsed.image?.$?.url) {
-            item.thumb = parsed.image.$.url
-        } else if (parsed.image && typeof parsed.image === "string") {
-            item.thumb = parsed.image
-        } else if (parsed.mediaContent) {
-            let images = parsed.mediaContent.filter(
-                c => c.$ && c.$.medium === "image" && c.$.url
-            )
-            if (images.length > 0) item.thumb = images[0].$.url
-        }
-        if (!item.thumb) {
-            let dom = domParser.parseFromString(item.content, "text/html")
-            let baseEl = dom.createElement("base")
-            baseEl.setAttribute(
-                "href",
-                item.link.split("/").slice(0, 3).join("/")
-            )
-            dom.head.append(baseEl)
-            let img = dom.querySelector("img")
-            if (img && img.src) item.thumb = img.src
-        }
-        if (
-            item.thumb &&
-            !item.thumb.startsWith("https://") &&
-            !item.thumb.startsWith("http://")
-        ) {
-            delete item.thumb
-        }
-    }
 }
 
 export type ItemState = {
@@ -210,7 +141,6 @@ export function fetchItems(
     sids: number[] = null
 ): AppThunk<Promise<void>> {
     return async (dispatch, getState) => {
-        let promises = new Array<Promise<RSSItem[]>>()
         const initState = getState()
         if (!initState.app.fetchingItems && !initState.app.syncing) {
             if (
@@ -220,76 +150,25 @@ export function fetchItems(
                 ).length > 0
             )
                 await dispatch(syncWithService(background))
-            let timenow = new Date().getTime()
-            const sourcesState = getState().sources
-            let sources =
-                sids === null
-                    ? Object.values(sourcesState).filter(s => {
-                          let last = s.lastFetched ? s.lastFetched.getTime() : 0
-                          return (
-                              !s.serviceRef &&
-                              (last > timenow ||
-                                  last + (s.fetchFrequency || 0) * 60000 <=
-                                      timenow)
-                          )
-                      })
-                    : sids
-                          .map(sid => sourcesState[sid])
-                          .filter(s => !s.serviceRef)
-            for (let source of sources) {
-                let promise = RSSSource.fetchItems(source)
-                promise.then(() =>
+            dispatch(fetchItemsRequest(0))
+            insertItems([])
+                .then(inserted => {
                     dispatch(
-                        updateSource({ ...source, lastFetched: new Date() })
+                        fetchItemsSuccess(inserted.reverse(), getState().items)
                     )
-                )
-                promise.finally(() => dispatch(fetchItemsIntermediate()))
-                promises.push(promise)
-            }
-            dispatch(fetchItemsRequest(promises.length))
-            const results = await Promise.allSettled(promises)
-            return await new Promise<void>((resolve, reject) => {
-                let items = new Array<RSSItem>()
-                results.map((r, i) => {
-                    if (r.status === "fulfilled") items.push(...r.value)
-                    else {
-                        console.log(r.reason)
-                        dispatch(fetchItemsFailure(sources[i], r.reason))
+                    if (!background) {
+                        dispatch(dismissItems())
                     }
+                    dispatch(setupAutoFetch())
                 })
-                insertItems(items)
-                    .then(inserted => {
-                        dispatch(
-                            fetchItemsSuccess(
-                                inserted.reverse(),
-                                getState().items
-                            )
-                        )
-                        resolve()
-                        if (background) {
-                            for (let item of inserted) {
-                                if (item.notify) {
-                                    dispatch(pushNotification(item))
-                                }
-                            }
-                            if (inserted.length > 0) {
-                                window.utils.requestAttention()
-                            }
-                        } else {
-                            dispatch(dismissItems())
-                        }
-                        dispatch(setupAutoFetch())
-                    })
-                    .catch(err => {
-                        dispatch(fetchItemsSuccess([], getState().items))
-                        window.utils.showErrorBox(
-                            "A database error has occurred.",
-                            String(err)
-                        )
-                        console.log(err)
-                        reject(err)
-                    })
-            })
+                .catch(err => {
+                    dispatch(fetchItemsSuccess([], getState().items))
+                    window.utils.showErrorBox(
+                        "A database error has occurred.",
+                        String(err)
+                    )
+                    console.log(err)
+                })
         }
     }
 }

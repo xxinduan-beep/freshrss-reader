@@ -30,7 +30,6 @@ type SourcesTabProps = {
     serviceOn: boolean
     sids: number[]
     acknowledgeSIDs: () => void
-    addSource: (url: string) => void
     updateSourceName: (source: RSSSource, name: string) => void
     updateSourceIcon: (source: RSSSource, iconUrl: string) => Promise<void>
     updateSourceOpenTarget: (
@@ -40,7 +39,6 @@ type SourcesTabProps = {
     updateFetchFrequency: (source: RSSSource, frequency: number) => void
     deleteSource: (source: RSSSource) => void
     deleteSources: (sources: RSSSource[]) => void
-    importOPML: () => void
     exportOPML: () => void
     toggleSourceHidden: (source: RSSSource) => void
 }
@@ -182,12 +180,6 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
         this.setState({ [name]: event.target.value })
     }
 
-    addSource = (event: React.FormEvent) => {
-        event.preventDefault()
-        let trimmed = this.state.newUrl.trim()
-        if (urlTest(trimmed)) this.props.addSource(trimmed)
-    }
-
     onOpenTargetChange = (
         _: React.ChangeEvent<HTMLInputElement>,
         data: { value: string }
@@ -222,46 +214,12 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
             <Label>{intl.get("sources.opmlFile")}</Label>
             <Stack horizontal>
                 <Stack.Item>
-                    <PrimaryButton
-                        onClick={this.props.importOPML}
-                        text={intl.get("sources.import")}
-                    />
-                </Stack.Item>
-                <Stack.Item>
                     <DefaultButton
                         onClick={this.props.exportOPML}
                         text={intl.get("sources.export")}
                     />
                 </Stack.Item>
             </Stack>
-
-            <form onSubmit={this.addSource}>
-                <Label htmlFor="newUrl">{intl.get("sources.add")}</Label>
-                <Stack horizontal>
-                    <Stack.Item grow>
-                        <TextField
-                            onGetErrorMessage={v =>
-                                urlTest(v.trim())
-                                    ? ""
-                                    : intl.get("sources.badUrl")
-                            }
-                            validateOnLoad={false}
-                            placeholder={intl.get("sources.inputUrl")}
-                            value={this.state.newUrl}
-                            id="newUrl"
-                            name="newUrl"
-                            onChange={this.handleInputChange}
-                        />
-                    </Stack.Item>
-                    <Stack.Item>
-                        <PrimaryButton
-                            disabled={!urlTest(this.state.newUrl.trim())}
-                            type="submit"
-                            text={intl.get("add")}
-                        />
-                    </Stack.Item>
-                </Stack>
-            </form>
 
             <DetailsList
                 compact={Object.keys(this.props.sources).length >= 10}
@@ -403,10 +361,6 @@ class SourcesTab extends React.Component<SourcesTabProps, SourcesTabState> {
                         <Radio
                             value={String(SourceOpenTarget.Local)}
                             label={intl.get("sources.rssText")}
-                        />
-                        <Radio
-                            value={String(SourceOpenTarget.FullContent)}
-                            label={intl.get("article.loadFull")}
                         />
                         <Radio
                             value={String(SourceOpenTarget.Webpage)}

@@ -82,12 +82,12 @@ const Page: React.FC = () => {
                             <img
                                 className="light"
                                 src="icons/logo-outline.svg"
-                                alt="Fluent Reader logo"
+                                alt="FreshRSS Reader logo"
                             />
                             <img
                                 className="dark"
                                 src="icons/logo-outline-dark.svg"
-                                alt="Fluent Reader logo"
+                                alt="FreshRSS Reader logo"
                             />
                         </div>
                     )}

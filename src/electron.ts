@@ -1,7 +1,6 @@
 import { app, ipcMain, Menu, nativeTheme } from "electron"
 import { ThemeSettings, SchemaTypes } from "./schema-types"
 import { store } from "./main/settings"
-import performUpdate from "./main/update-scripts"
 import { WindowManager } from "./main/window"
 
 if (!process.mas) {
@@ -13,12 +12,11 @@ if (!process.mas) {
 
 if (!app.isPackaged) app.setAppUserModelId(process.execPath)
 else if (process.platform === "win32")
-    app.setAppUserModelId("me.hyliu.fluentreader")
+    app.setAppUserModelId("io.github.freshrss.freshrss-reader")
 
 let restarting = false
 
 function init() {
-    performUpdate(store)
     nativeTheme.themeSource = store.get("theme", ThemeSettings.Default)
 }
 
@@ -127,7 +125,6 @@ ipcMain.handle("import-all-settings", (_, configs: SchemaTypes) => {
         // @ts-ignore
         store.set(key, value)
     }
-    performUpdate(store)
     nativeTheme.themeSource = store.get("theme", ThemeSettings.Default)
     setTimeout(
         () => {

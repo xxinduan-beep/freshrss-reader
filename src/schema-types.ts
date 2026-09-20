@@ -55,12 +55,7 @@ export const enum ImageCallbackTypes {
 
 export const enum SyncService {
     None,
-    Fever,
-    Feedbin,
-    GReader,
-    Inoreader,
-    Miniflux,
-    Nextcloud,
+    FreshRSS = 3, // reuse GReader's numeric slot
 }
 export interface ServiceConfigs {
     type: SyncService
@@ -97,5 +92,4 @@ export type SchemaTypes = {
     serviceConfigs: ServiceConfigs
     filterType: number
     listViewConfigs: ViewConfigs
-    useNeDB: boolean
 }
