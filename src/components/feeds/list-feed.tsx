@@ -9,13 +9,21 @@ import {
 } from "office-ui-fabric-react"
 import { RSSItem } from "../../scripts/models/item"
 import { AnimationClassNames } from "@fluentui/react"
-import { ViewType } from "../../schema-types"
+import { ViewType, ViewConfigs } from "../../schema-types"
 import ListCard from "../cards/list-card"
 import MagazineCard from "../cards/magazine-card"
 import CompactCard from "../cards/compact-card"
 import { Card } from "../cards/card"
+import { useMarkReadOnScroll } from "./use-mark-read-on-scroll"
 
 const ListFeed: React.FC<FeedProps> = props => {
+    const handleScroll = useMarkReadOnScroll(
+        window.settings.getScrollMarkReadOn() &&
+            Boolean(props.viewConfigs & ViewConfigs.MarkReadOnScroll),
+        props.items,
+        props.markRead
+    )
+
     const onRenderItem = (item: RSSItem) => {
         const cardProps = {
             feedId: props.feed._id,
@@ -78,6 +86,7 @@ const ListFeed: React.FC<FeedProps> = props => {
                 direction={FocusZoneDirection.vertical}
                 className={getClassName()}
                 shouldReceiveFocus={canFocusChild}
+                onScroll={handleScroll}
                 data-is-scrollable>
                 <List
                     className={AnimationClassNames.slideUpIn10}

@@ -7,6 +7,7 @@ import { ALL, initFeeds } from "../scripts/models/feed"
 import { useAppSelector, useAppDispatch } from "../scripts/reducer"
 import { toggleMenu, openGroupMenu } from "../scripts/models/app"
 import { toggleGroupExpansion } from "../scripts/models/group"
+import { fetchSourceUnread } from "../scripts/models/service"
 import {
     selectAllArticles,
     selectSources,
@@ -187,12 +188,14 @@ export const Menu: React.FC = () => {
         (group: SourceGroup, menuKey: string) => {
             dispatch(selectSources(group.sids, menuKey, group.name))
             dispatch(initFeeds())
+            dispatch(fetchSourceUnread(group.sids))
         },
         []
     )
     const handleSelectSource = useCallback((source: RSSSource) => {
         dispatch(selectSources([source.sid], "s-" + source.sid, source.name))
         dispatch(initFeeds())
+        dispatch(fetchSourceUnread([source.sid]))
     }, [])
     const handleGroupContextMenu = useCallback(
         (sids: number[], event: React.MouseEvent) => {

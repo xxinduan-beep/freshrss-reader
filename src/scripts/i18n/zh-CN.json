@@ -98,7 +98,8 @@
         "caseSensitive": "区分大小写",
         "showCover": "显示封面",
         "showSnippet": "显示摘要",
-        "fadeRead": "淡化已读文章"
+        "fadeRead": "淡化已读文章",
+        "markReadOnScroll": "滚动时自动标记已读"
     },
     "searchEngine": {
         "name": "搜索引擎",

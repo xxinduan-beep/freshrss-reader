@@ -98,7 +98,8 @@
         "caseSensitive": "Diferenciar maiúsculas e minúsculas",
         "showCover": "Mostrar capa",
         "showSnippet": "Mostrar trecho",
-        "fadeRead": "Desaparecer artigos lidos"
+        "fadeRead": "Desaparecer artigos lidos",
+        "markReadOnScroll": "Marcar como lido ao deslocar"
     },
     "searchEngine": {
         "name": "Motor de pesquisa",

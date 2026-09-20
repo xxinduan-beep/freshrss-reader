@@ -98,7 +98,8 @@
         "caseSensitive": "Sprawdzaj wielkość liter",
         "showCover": "Pokaż okładkę",
         "showSnippet": "Pokaż podgląd",
-        "fadeRead": "Przyćmij przeczytane wpisy"
+        "fadeRead": "Przyćmij przeczytane wpisy",
+        "markReadOnScroll": "Oznaczaj jako przeczytane podczas przewijania"
     },
     "searchEngine": {
         "name": "Wyszukiwarka",

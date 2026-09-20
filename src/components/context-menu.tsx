@@ -260,6 +260,21 @@ function ItemContextMenu() {
                                           )
                                       ),
                               },
+                              {
+                                  key: "markReadOnScroll",
+                                  text: intl.get("context.markReadOnScroll"),
+                                  canCheck: true,
+                                  checked: Boolean(
+                                      viewConfigs & ViewConfigs.MarkReadOnScroll
+                                  ),
+                                  onClick: () =>
+                                      dispatch(
+                                          setViewConfigs(
+                                              viewConfigs ^
+                                                  ViewConfigs.MarkReadOnScroll
+                                          )
+                                      ),
+                              },
                           ],
                       },
                   },
@@ -369,6 +384,7 @@ function ImageContextMenu() {
 function ViewContextMenu() {
     const dispatch = useAppDispatch()
     const viewType = useAppSelector(state => state.page.viewType)
+    const viewConfigs = useAppSelector(state => state.page.viewConfigs)
     const filter = useAppSelector(state => state.page.filter.type)
 
     const menuItems: IContextualMenuItem[] = [
@@ -410,6 +426,21 @@ function ViewContextMenu() {
                         canCheck: true,
                         checked: viewType === ViewType.Compact,
                         onClick: () => dispatch(switchView(ViewType.Compact)),
+                    },
+                    {
+                        key: "markReadOnScroll",
+                        text: intl.get("context.markReadOnScroll"),
+                        canCheck: true,
+                        checked: Boolean(
+                            viewConfigs & ViewConfigs.MarkReadOnScroll
+                        ),
+                        onClick: () =>
+                            dispatch(
+                                setViewConfigs(
+                                    (viewConfigs | 0) ^
+                                        ViewConfigs.MarkReadOnScroll
+                                )
+                            ),
                     },
                 ],
             },

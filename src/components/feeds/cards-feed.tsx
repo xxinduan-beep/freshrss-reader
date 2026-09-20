@@ -6,8 +6,16 @@ import DefaultCard from "../cards/default-card"
 import { PrimaryButton, FocusZone } from "office-ui-fabric-react"
 import { RSSItem } from "../../scripts/models/item"
 import { List, AnimationClassNames } from "@fluentui/react"
+import { ViewConfigs } from "../../schema-types"
+import { useMarkReadOnScroll } from "./use-mark-read-on-scroll"
 
 const CardsFeed: React.FC<FeedProps> = props => {
+    const handleScroll = useMarkReadOnScroll(
+        window.settings.getScrollMarkReadOn() &&
+            Boolean(props.viewConfigs & ViewConfigs.MarkReadOnScroll),
+        props.items,
+        props.markRead
+    )
     const [width, setWidth] = useState(window.innerWidth)
     const [height, setHeight] = useState(window.innerHeight)
     const observerRef = useRef<ResizeObserver>(null)
@@ -83,6 +91,7 @@ const CardsFeed: React.FC<FeedProps> = props => {
                 id="refocus"
                 className="cards-feed-container"
                 shouldReceiveFocus={canFocusChild}
+                onScroll={handleScroll}
                 data-is-scrollable>
                 <List
                     className={AnimationClassNames.slideUpIn10}

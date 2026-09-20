@@ -92,7 +92,8 @@
         "caseSensitive": "대소문자 구분",
         "showCover": "커버 이미지 표시",
         "showSnippet": "스니펫 표시",
-        "fadeRead": "읽은 글을 희미하게 표시"
+        "fadeRead": "읽은 글을 희미하게 표시",
+        "markReadOnScroll": "스크롤 시 읽은 것으로 표시"
     },
     "searchEngine": {
         "name": "검색 엔진",

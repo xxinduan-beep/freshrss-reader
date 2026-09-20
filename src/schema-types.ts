@@ -30,6 +30,7 @@ export const enum ViewConfigs {
     ShowCover = 1 << 0,
     ShowSnippet = 1 << 1,
     FadeRead = 1 << 2,
+    MarkReadOnScroll = 1 << 3,
 }
 
 export const enum ThemeSettings {
@@ -92,4 +93,8 @@ export type SchemaTypes = {
     serviceConfigs: ServiceConfigs
     filterType: number
     listViewConfigs: ViewConfigs
+    cardsViewConfigs: ViewConfigs
+    magazineViewConfigs: ViewConfigs
+    compactViewConfigs: ViewConfigs
+    scrollMarkReadOn: boolean
 }

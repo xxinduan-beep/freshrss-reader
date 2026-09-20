@@ -92,7 +92,8 @@
         "caseSensitive": "Skiftlägeskänslig",
         "showCover": "Visa omslag",
         "showSnippet": "Visa utdrag",
-        "fadeRead": "Tona lästa artiklar"
+        "fadeRead": "Tona lästa artiklar",
+        "markReadOnScroll": "Markera som läst vid rullning"
     },
     "searchEngine": {
         "name": "Sökmotor",

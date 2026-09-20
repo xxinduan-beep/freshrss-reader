@@ -92,7 +92,8 @@
         "caseSensitive": "Case sensitive",
         "showCover": "Mostra copertina",
         "showSnippet": "Show snippet",
-        "fadeRead": "Scolorisci articoli letti"
+        "fadeRead": "Scolorisci articoli letti",
+        "markReadOnScroll": "Segna come letto durante lo scorrimento"
     },
     "searchEngine": {
         "name": "Motore di ricerca",

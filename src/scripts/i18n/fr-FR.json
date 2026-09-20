@@ -92,7 +92,8 @@
         "caseSensitive": "Sensible à la casse",
         "showCover": "Afficher couverture",
         "showSnippet": "Afficher extrait",
-        "fadeRead": "Atténuer les articles lus"
+        "fadeRead": "Atténuer les articles lus",
+        "markReadOnScroll": "Marquer comme lu lors du défilement"
     },
     "searchEngine": {
         "name": "Moteur de recherche",

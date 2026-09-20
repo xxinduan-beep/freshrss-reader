@@ -70,6 +70,7 @@
         "listView": "Vista en modo listado",
         "magazineView": "Vista en modo revista",
         "compactView": "Vista en modo compacta",
+        "markReadOnScroll": "Marcar como leído al desplazarse",
         "filter": "Filtrando",
         "unreadOnly": "Solo no leídos",
         "starredOnly": "Solo destacados",

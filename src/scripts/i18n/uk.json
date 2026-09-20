@@ -92,7 +92,8 @@
         "caseSensitive": "З урахуванням регістру",
         "showCover": "Показати обкладинку",
         "showSnippet": "Показати фрагмент",
-        "fadeRead": "Fade читати статті"
+        "fadeRead": "Fade читати статті",
+        "markReadOnScroll": "Позначати прочитаним під час прокрутки"
     },
     "searchEngine": {
         "name": "Пошукова система",

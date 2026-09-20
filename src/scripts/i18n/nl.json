@@ -92,7 +92,8 @@
         "caseSensitive": "Hoofdlettergevoelig",
         "showCover": "Omslag tonen",
         "showSnippet": "Knipsel tonen",
-        "fadeRead": "Gelezen artikelen dimmen"
+        "fadeRead": "Gelezen artikelen dimmen",
+        "markReadOnScroll": "Bij scrollen als gelezen markeren"
     },
     "searchEngine": {
         "name": "Zoekmachine",

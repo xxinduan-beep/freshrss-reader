@@ -61,6 +61,7 @@
         "copyTitle": "Kopioi otsikko",
         "copyURL": "Kopioi linkki",
         "fadeRead": "Häivytä luetut artikkelit",
+        "markReadOnScroll": "Merkitse luetuksi vierittäessä",
         "filter": "Suodatus",
         "fullSearch": "Hae koko tekstistä",
         "listView": "Lista",

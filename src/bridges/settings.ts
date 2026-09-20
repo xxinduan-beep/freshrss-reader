@@ -124,6 +124,13 @@ const settingsBridge = {
         ipcRenderer.invoke("set-unread-sources-only", flag)
     },
 
+    getScrollMarkReadOn: (): boolean => {
+        return ipcRenderer.sendSync("get-scroll-mark-read")
+    },
+    setScrollMarkReadOn: (flag: boolean) => {
+        ipcRenderer.invoke("set-scroll-mark-read", flag)
+    },
+
     getAll: () => {
         return ipcRenderer.sendSync("get-all-settings") as Object
     },

@@ -98,7 +98,8 @@
         "caseSensitive": "Rozlišovat velká a malá písmena",
         "showCover": "Zobrazit kryt",
         "showSnippet": "Zobrazit úryvek",
-        "fadeRead": " Vyblednout čtenné články"
+        "fadeRead": " Vyblednout čtenné články",
+        "markReadOnScroll": "Označit jako přečtené při rolování"
     },
     "searchEngine": {
         "name": "Vyhledávač",

@@ -92,7 +92,8 @@
         "caseSensitive": "大文字と小文字を区別",
         "showCover": "表紙を表示",
         "showSnippet": "スニペットを表示",
-        "fadeRead": "開封済みをフェード表示"
+        "fadeRead": "開封済みをフェード表示",
+        "markReadOnScroll": "スクロール時に既読にする"
     },
     "searchEngine": {
         "name": "検索エンジン",

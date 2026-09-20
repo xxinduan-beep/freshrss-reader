@@ -57,7 +57,9 @@ export class WindowManager {
                 height: this.mainWindowState.height,
                 minWidth: 992,
                 minHeight: 600,
-                frame: process.platform === "darwin",
+                frame:
+                    process.platform === "darwin" ||
+                    !!process.env.FRSS_NATIVE_FRAME,
                 titleBarStyle: "hiddenInset",
                 fullscreenable: process.platform === "darwin",
                 show: false,

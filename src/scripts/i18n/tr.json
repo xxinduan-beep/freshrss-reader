@@ -92,7 +92,8 @@
         "caseSensitive": "Harfe duyarlı",
         "showCover": "Resmi göster",
         "showSnippet": "Açıklama göster",
-        "fadeRead": "Okunanları karart"
+        "fadeRead": "Okunanları karart",
+        "markReadOnScroll": "Kaydırırken okundu olarak işaretle"
     },
     "searchEngine": {
         "name": "Arama motoru",

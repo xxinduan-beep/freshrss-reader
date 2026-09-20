@@ -92,7 +92,8 @@
         "caseSensitive": "Diferenciar maiúsculas e minúsculas",
         "showCover": "Exibir capa",
         "showSnippet": "Mostrar trecho",
-        "fadeRead": "Esmaecer artigos lidos"
+        "fadeRead": "Esmaecer artigos lidos",
+        "markReadOnScroll": "Marcar como lido ao rolar"
     },
     "searchEngine": {
         "name": "Motor de pesquisa",

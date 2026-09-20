@@ -23,6 +23,7 @@ export interface ServiceHooks {
     updateSources?: () => AppThunk<Promise<[RSSSource[], Map<string, string>]>>
     fetchItems?: () => AppThunk<Promise<[RSSItem[], ServiceConfigs]>>
     syncItems?: () => AppThunk<Promise<[Set<string>, Set<string>]>>
+    fetchFeedUnread?: (sids: number[]) => AppThunk<Promise<void>>
     markRead?: (item: RSSItem) => AppThunk
     markUnread?: (item: RSSItem) => AppThunk
     markAllRead?: (
@@ -162,6 +163,15 @@ function updateSources(
             const configs = getState().service
             delete configs.importGroups
             dispatch(saveServiceConfigs(configs))
+        }
+    }
+}
+
+export function fetchSourceUnread(sids: number[]): AppThunk<Promise<void>> {
+    return async (dispatch, getState) => {
+        const hooks = dispatch(getServiceHooks())
+        if (hooks.fetchFeedUnread && sids.length > 0) {
+            await dispatch(hooks.fetchFeedUnread(sids))
         }
     }
 }

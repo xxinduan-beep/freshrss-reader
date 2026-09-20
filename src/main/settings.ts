@@ -172,28 +172,38 @@ ipcMain.handle("set-filter-type", (_, filterType: number) => {
     store.set(FILTER_TYPE_STORE_KEY, filterType)
 })
 
+const CARD_CONFIGS_STORE_KEY = "cardsViewConfigs"
 const LIST_CONFIGS_STORE_KEY = "listViewConfigs"
-ipcMain.on("get-view-configs", (event, view: ViewType) => {
+const MAGAZINE_CONFIGS_STORE_KEY = "magazineViewConfigs"
+const COMPACT_CONFIGS_STORE_KEY = "compactViewConfigs"
+
+function getViewConfigsStoreKey(view: ViewType): keyof SchemaTypes {
     switch (view) {
-        case ViewType.List:
-            event.returnValue = store.get(
-                LIST_CONFIGS_STORE_KEY,
-                ViewConfigs.ShowCover
-            )
-            break
+        case ViewType.Cards:
+            return CARD_CONFIGS_STORE_KEY
+        case ViewType.Magazine:
+            return MAGAZINE_CONFIGS_STORE_KEY
+        case ViewType.Compact:
+            return COMPACT_CONFIGS_STORE_KEY
         default:
-            event.returnValue = undefined
-            break
+            return LIST_CONFIGS_STORE_KEY
     }
+}
+
+function getViewConfigsDefault(view: ViewType): ViewConfigs {
+    return view === ViewType.List ? ViewConfigs.ShowCover : (0 as ViewConfigs)
+}
+
+ipcMain.on("get-view-configs", (event, view: ViewType) => {
+    event.returnValue = store.get(
+        getViewConfigsStoreKey(view),
+        getViewConfigsDefault(view)
+    )
 })
 ipcMain.handle(
     "set-view-configs",
     (_, view: ViewType, configs: ViewConfigs) => {
-        switch (view) {
-            case ViewType.List:
-                store.set(LIST_CONFIGS_STORE_KEY, configs)
-                break
-        }
+        store.set(getViewConfigsStoreKey(view), configs)
     }
 )
 
@@ -203,4 +213,12 @@ ipcMain.on("get-unread-sources-only", event => {
 })
 ipcMain.handle("set-unread-sources-only", (_, flag: boolean) => {
     store.set(UNREAD_SOURCES_ONLY_STORE_KEY, flag)
+})
+
+const SCROLL_MARK_READ_STORE_KEY = "scrollMarkReadOn"
+ipcMain.on("get-scroll-mark-read", event => {
+    event.returnValue = store.get(SCROLL_MARK_READ_STORE_KEY, false)
+})
+ipcMain.handle("set-scroll-mark-read", (_, flag: boolean) => {
+    store.set(SCROLL_MARK_READ_STORE_KEY, flag)
 })
