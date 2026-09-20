@@ -375,7 +375,7 @@ const utilsBridge = {
     },
 
     clearCache: async () => {
-        await api("cache/clear")
+        await api("cache/clear", {})
     },
 
     addMainContextListener: (
@@ -418,13 +418,13 @@ const utilsBridge = {
     },
 
     closeWindow: () => {
-        api("window/close")
+        api("window/close", {})
     },
     minimizeWindow: () => {
-        api("window/minimize")
+        api("window/minimize", {})
     },
     maximizeWindow: () => {
-        api("window/zoom")
+        api("window/zoom", {})
     },
     isMaximized: () => {
         return !!(apiSync("window/state") || {}).maximized
@@ -437,10 +437,10 @@ const utilsBridge = {
         return state ? state.focused !== false : true
     },
     focus: () => {
-        api("window/focus")
+        api("window/focus", {})
     },
     requestAttention: () => {
-        api("window/attention")
+        api("window/attention", {})
     },
     addWindowStateListener: (
         callback: (type: WindowStateListenerType, state: boolean) => any
