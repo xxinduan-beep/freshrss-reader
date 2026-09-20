@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useEffect } from "react"
 import intl from "react-intl-universal"
 import { FeedProps } from "./feed"
 import {
@@ -17,11 +18,20 @@ import { Card } from "../cards/card"
 import { useMarkReadOnScroll } from "./use-mark-read-on-scroll"
 
 const ListFeed: React.FC<FeedProps> = props => {
+    // Reset the scroll position to the top whenever the feed content resets
+    // (refresh or feed switch), otherwise stale offsets hide new unread
+    // items above the viewport.
+    const resetKey = `${props.feed._id}:${props.items[0]?._id ?? ""}`
+    useEffect(() => {
+        const container = document.getElementById("refocus")
+        if (container) container.scrollTo(0, 0)
+    }, [resetKey])
     const handleScroll = useMarkReadOnScroll(
         window.settings.getScrollMarkReadOn() &&
             Boolean(props.viewConfigs & ViewConfigs.MarkReadOnScroll),
         props.items,
-        props.markRead
+        props.markRead,
+        resetKey
     )
 
     const onRenderItem = (item: RSSItem) => {

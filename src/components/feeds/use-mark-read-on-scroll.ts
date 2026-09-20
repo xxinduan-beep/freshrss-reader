@@ -1,10 +1,11 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { RSSItem } from "../../scripts/models/item"
 
 export function useMarkReadOnScroll(
     enabled: boolean,
     items: RSSItem[],
-    markRead: (item: RSSItem) => void
+    markRead: (item: RSSItem) => void,
+    resetKey?: string
 ) {
     const itemsRef = useRef(items)
     itemsRef.current = items
@@ -12,6 +13,12 @@ export function useMarkReadOnScroll(
     markReadRef.current = markRead
     const tickingRef = useRef(false)
     const lastScrollTopRef = useRef(0)
+
+    // When the feed content resets (refresh, feed switch), drop the stale
+    // scroll position so scrolling down from the top marks again.
+    useEffect(() => {
+        lastScrollTopRef.current = 0
+    }, [resetKey])
 
     return useCallback(
         (e: React.UIEvent<HTMLElement>) => {
