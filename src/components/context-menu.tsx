@@ -267,13 +267,24 @@ function ItemContextMenu() {
                                   checked: Boolean(
                                       viewConfigs & ViewConfigs.MarkReadOnScroll
                                   ),
-                                  onClick: () =>
+                                  onClick: () => {
+                                      if (
+                                          !(
+                                              viewConfigs &
+                                              ViewConfigs.MarkReadOnScroll
+                                          )
+                                      ) {
+                                          window.settings.setScrollMarkReadOn(
+                                              true
+                                          )
+                                      }
                                       dispatch(
                                           setViewConfigs(
                                               viewConfigs ^
                                                   ViewConfigs.MarkReadOnScroll
                                           )
-                                      ),
+                                      )
+                                  },
                               },
                           ],
                       },
@@ -434,13 +445,17 @@ function ViewContextMenu() {
                         checked: Boolean(
                             viewConfigs & ViewConfigs.MarkReadOnScroll
                         ),
-                        onClick: () =>
+                        onClick: () => {
+                            if (!(viewConfigs & ViewConfigs.MarkReadOnScroll)) {
+                                window.settings.setScrollMarkReadOn(true)
+                            }
                             dispatch(
                                 setViewConfigs(
                                     (viewConfigs | 0) ^
                                         ViewConfigs.MarkReadOnScroll
                                 )
-                            ),
+                            )
+                        },
                     },
                 ],
             },
