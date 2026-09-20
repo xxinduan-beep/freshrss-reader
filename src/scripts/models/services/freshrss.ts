@@ -23,19 +23,41 @@ export interface FreshRSSConfigs extends ServiceConfigs {
     auth?: string
 }
 
+// Minimal Response surface used by the call sites below. Requests are
+// forwarded through the Go backend because the webview enforces CORS, which
+// Electron never did.
+interface ForwardedResponse {
+    status: number
+    json: () => Promise<any>
+    text: () => Promise<string>
+}
+
 async function fetchAPI(
     configs: FreshRSSConfigs,
     params: string,
     method = "GET",
-    body: BodyInit = null
-) {
-    const headers = new Headers()
-    if (configs.auth !== null) headers.set("Authorization", configs.auth)
-    return await fetch(configs.endpoint + params, {
+    body: URLSearchParams | string = null
+): Promise<ForwardedResponse> {
+    const headers: { [key: string]: string } = {}
+    if (configs.auth !== null) headers["Authorization"] = configs.auth
+    let bodyStr: string = null
+    if (body !== null) {
+        bodyStr = typeof body === "string" ? body : body.toString()
+        headers["Content-Type"] =
+            "application/x-www-form-urlencoded;charset=UTF-8"
+    }
+    const resp = await window.utils.request({
         method: method,
+        url: configs.endpoint + params,
         headers: headers,
-        body: body,
+        body: bodyStr,
     })
+    if (resp.error) throw new Error(resp.error)
+    return {
+        status: resp.status,
+        json: () => Promise.resolve(JSON.parse(resp.body)),
+        text: () => Promise.resolve(resp.body),
+    }
 }
 
 async function fetchAll(

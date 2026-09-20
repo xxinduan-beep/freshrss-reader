@@ -42,4 +42,21 @@ getArticle(url).then(article => {
     let main = document.getElementById("main")
     main.innerHTML = dom.body.innerHTML
     main.classList.add("show")
-})
+});
+document.addEventListener("keydown", (evt) => {
+    if (evt.isTrusted) {
+        window.parent.postMessage({
+            type: "frss-webview-keydown",
+            input: {
+                type: "keyDown",
+                key: evt.key,
+                code: evt.code,
+                alt: evt.altKey,
+                control: evt.ctrlKey,
+                shift: evt.shiftKey,
+                meta: evt.metaKey,
+                isAutoRepeat: evt.repeat,
+            },
+        }, "*");
+    }
+});

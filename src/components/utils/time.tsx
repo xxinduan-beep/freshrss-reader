@@ -6,7 +6,7 @@ interface TimeProps {
 }
 
 class Time extends React.Component<TimeProps> {
-    timerID: NodeJS.Timeout
+    timerID: ReturnType<typeof setTimeout>
     state = { now: new Date() }
 
     componentDidMount() {

@@ -5,7 +5,7 @@ export const useIsWideScreen = () => {
     const [isWide, setIsWide] = useState(getWindowBreakpoint)
 
     useEffect(() => {
-        let timer: NodeJS.Timeout
+        let timer: ReturnType<typeof setTimeout>
         const handler = () => {
             clearTimeout(timer)
             timer = setTimeout(() => {

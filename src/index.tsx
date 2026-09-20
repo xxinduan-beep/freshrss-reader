@@ -1,3 +1,5 @@
+// Wails bridge shim must run before any module touches window.settings/utils
+import "./bridges/wails"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
 import { Provider } from "react-redux"

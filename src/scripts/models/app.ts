@@ -314,7 +314,7 @@ function freeMemory(): AppThunk {
     }
 }
 
-let fetchTimeout: NodeJS.Timeout
+let fetchTimeout: ReturnType<typeof setTimeout>
 export function setupAutoFetch(): AppThunk {
     return (dispatch, getState) => {
         clearTimeout(fetchTimeout)

@@ -11,11 +11,7 @@ import {
     Icon,
     Link,
 } from "@fluentui/react"
-import {
-    RSSSource,
-    SourceOpenTarget,
-    SourceTextDirection,
-} from "../scripts/models/source"
+import { RSSSource, SourceTextDirection } from "../scripts/models/source"
 import { shareSubmenu } from "./context-menu"
 import { platformCtrl } from "../scripts/utils"
 import { Spinner } from "@fluentui/react-components"
@@ -44,28 +40,70 @@ type ArticleProps = {
 type ArticleState = {
     fontFamily: string
     fontSize: number
-    loadWebpage: boolean
     loaded: boolean
     error: boolean
     errorDescription: string
 }
 
 class Article extends React.Component<ArticleProps, ArticleState> {
-    webview: Electron.WebviewTag
+    iframe: HTMLIFrameElement
+    // Key events forwarded from the article iframe via postMessage.
+    // Shape mirrors the legacy Electron Input descriptor.
+    keyDownHandler = (input: {
+        type?: string
+        key: string
+        code: string
+        alt: boolean
+        control: boolean
+        shift: boolean
+        meta: boolean
+        isAutoRepeat: boolean
+    }) => {
+        if (input.type === "keyDown") {
+            switch (input.key) {
+                case "Escape":
+                    this.props.dismiss()
+                    break
+                case "ArrowLeft":
+                case "ArrowRight":
+                    this.props.offsetItem(input.key === "ArrowLeft" ? -1 : 1)
+                    break
+                case "l":
+                case "L":
+                    this.openWebpage()
+                    break
+                case "H":
+                case "h":
+                    if (!input.meta) this.props.toggleHidden(this.props.item)
+                    break
+                default:
+                    const keyboardEvent = new KeyboardEvent("keydown", {
+                        code: input.code,
+                        key: input.key,
+                        shiftKey: input.shift,
+                        altKey: input.alt,
+                        ctrlKey: input.control,
+                        metaKey: input.meta,
+                        repeat: input.isAutoRepeat,
+                        bubbles: true,
+                    })
+                    this.props.shortcuts(this.props.item, keyboardEvent)
+                    document.dispatchEvent(keyboardEvent)
+                    break
+            }
+        }
+    }
 
     constructor(props: ArticleProps) {
         super(props)
         this.state = {
             fontFamily: window.settings.getFont(),
             fontSize: window.settings.getFontSize(),
-            loadWebpage: props.source.openTarget === SourceOpenTarget.Webpage,
             loaded: false,
             error: false,
             errorDescription: "",
         }
-        window.utils.addWebviewContextListener(this.contextMenuHandler)
         window.utils.addWebviewKeydownListener(this.keyDownHandler)
-        window.utils.addWebviewErrorListener(this.webviewError)
     }
 
     setFontSize = (size: number) => {
@@ -171,21 +209,18 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                 key: "fontMenu",
                 text: intl.get("article.font"),
                 iconProps: { iconName: "Font" },
-                disabled: this.state.loadWebpage,
                 subMenuProps: this.fontFamilyMenuProps(),
             },
             {
                 key: "fontSizeMenu",
                 text: intl.get("article.fontSize"),
                 iconProps: { iconName: "FontSize" },
-                disabled: this.state.loadWebpage,
                 subMenuProps: this.fontSizeMenuProps(),
             },
             {
                 key: "directionMenu",
                 text: intl.get("article.textDir"),
                 iconProps: { iconName: "ChangeEntitlements" },
-                disabled: this.state.loadWebpage,
                 subMenuProps: this.directionMenuProps(),
             },
             {
@@ -205,63 +240,24 @@ class Article extends React.Component<ArticleProps, ArticleState> {
         }
     }
 
-    keyDownHandler = (input: Electron.Input) => {
-        if (input.type === "keyDown") {
-            switch (input.key) {
-                case "Escape":
-                    this.props.dismiss()
-                    break
-                case "ArrowLeft":
-                case "ArrowRight":
-                    this.props.offsetItem(input.key === "ArrowLeft" ? -1 : 1)
-                    break
-                case "l":
-                case "L":
-                    this.toggleWebpage()
-                    break
-                case "H":
-                case "h":
-                    if (!input.meta) this.props.toggleHidden(this.props.item)
-                    break
-                default:
-                    const keyboardEvent = new KeyboardEvent("keydown", {
-                        code: input.code,
-                        key: input.key,
-                        shiftKey: input.shift,
-                        altKey: input.alt,
-                        ctrlKey: input.control,
-                        metaKey: input.meta,
-                        repeat: input.isAutoRepeat,
-                        bubbles: true,
-                    })
-                    this.props.shortcuts(this.props.item, keyboardEvent)
-                    document.dispatchEvent(keyboardEvent)
-                    break
-            }
-        }
-    }
-
     webviewLoaded = () => {
         this.setState({ loaded: true })
     }
-    webviewError = (reason: string) => {
-        this.setState({ error: true, errorDescription: reason })
-    }
     webviewReload = () => {
-        if (this.webview) {
+        if (this.iframe) {
             this.setState({ loaded: false, error: false })
-            this.webview.reload()
+            this.iframe.contentWindow?.location.reload()
         }
     }
 
     componentDidMount = () => {
-        let webview = document.getElementById("article") as Electron.WebviewTag
-        if (webview != this.webview) {
-            this.webview = webview
-            if (webview) {
-                webview.focus()
+        let iframe = document.getElementById("article") as HTMLIFrameElement
+        if (iframe != this.iframe) {
+            this.iframe = iframe
+            if (iframe) {
+                iframe.focus()
                 this.setState({ loaded: false, error: false })
-                webview.addEventListener("did-stop-loading", this.webviewLoaded)
+                iframe.addEventListener("load", this.webviewLoaded)
                 let card = document.querySelector(
                     `#refocus div[data-iid="${this.props.item._id}"]`
                 ) as HTMLElement
@@ -272,10 +268,7 @@ class Article extends React.Component<ArticleProps, ArticleState> {
     }
     componentDidUpdate = (prevProps: ArticleProps) => {
         if (prevProps.item._id != this.props.item._id) {
-            this.setState({
-                loadWebpage:
-                    this.props.source.openTarget === SourceOpenTarget.Webpage,
-            })
+            this.setState({ loaded: false, error: false })
         }
         this.componentDidMount()
     }
@@ -287,14 +280,14 @@ class Article extends React.Component<ArticleProps, ArticleState> {
         if (refocus) refocus.focus()
     }
 
-    toggleWebpage = () => {
-        if (this.state.loadWebpage) {
-            this.setState({ loadWebpage: false })
-        } else if (
+    // Webpages cannot be embedded in a sandboxed iframe (most sites send
+    // X-Frame-Options), so the original webpage mode opens the system browser.
+    openWebpage = () => {
+        if (
             this.props.item.link.startsWith("https://") ||
             this.props.item.link.startsWith("http://")
         ) {
-            this.setState({ loadWebpage: true })
+            window.utils.openExternal(this.props.item.link)
         }
     }
 
@@ -388,9 +381,8 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                     />
                     <CommandBarButton
                         title={intl.get("article.loadWebpage")}
-                        className={this.state.loadWebpage ? "active" : ""}
                         iconProps={{ iconName: "Globe" }}
-                        onClick={this.toggleWebpage}
+                        onClick={this.openWebpage}
                     />
                     <CommandBarButton
                         title={intl.get("more")}
@@ -407,18 +399,12 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                     />
                 </Stack>
             </Stack>
-            <webview
+            <iframe
                 id="article"
                 className={this.state.error ? "error" : ""}
-                key={this.props.item._id + (this.state.loadWebpage ? "_" : "")}
-                src={
-                    this.state.loadWebpage
-                        ? this.props.item.link
-                        : this.articleView()
-                }
-                allowpopups={"true" as unknown as boolean}
-                webpreferences="contextIsolation,disableDialogs,autoplayPolicy=document-user-activation-required"
-                partition={this.state.loadWebpage ? "sandbox" : undefined}
+                key={this.props.item._id}
+                src={this.articleView()}
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             />
             {this.state.error && (
                 <Stack

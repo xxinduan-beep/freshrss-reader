@@ -18,24 +18,24 @@ FreshRSS server; articles are cached locally.
 - Two-way read/star state sync with incremental diffing
 - Group (category) import from the server
 - Cards / list / magazine / compact views, themes, search, notifications
-- OPML export, favicons, PAC proxy, TouchBar support
+- OPML export, favicons, PAC proxy
 
 ## Download
 
-Build from source (Linux AppImage, Windows NSIS, macOS dmg):
+Build from source (Linux first; requires gcc, Go >= 1.24 and GTK3/WebKit2GTK):
 
 ```bash
 npm install
-npm run build
-npm run package-linux   # or package-win / package-mac
+./build.sh               # renderer + Go binary -> bin/freshrss-reader
+./run.sh bin/freshrss-reader
 ```
 
 ## Development
 
 ```bash
 npm install
-npm run build
-npm run electron
+npm run build            # renderer bundle only
+npx tsc --noEmit         # typecheck
 ```
 
 Point the app at your FreshRSS instance's Google Reader API endpoint, e.g.

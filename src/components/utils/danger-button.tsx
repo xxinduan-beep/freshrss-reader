@@ -3,7 +3,7 @@ import intl from "react-intl-universal"
 import { PrimaryButton } from "@fluentui/react"
 
 class DangerButton extends PrimaryButton {
-    timerID: NodeJS.Timeout
+    timerID: ReturnType<typeof setTimeout>
 
     state = {
         confirming: false,

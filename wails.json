@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v3.json",
+  "name": "FreshRSS Reader",
+  "version": "1.0.0",
+  "outputfilename": "freshrss-reader",
+  "info": {
+    "productName": "FreshRSS Reader",
+    "productVersion": "1.0.0",
+    "comments": "FreshRSS-specific desktop RSS client"
+  },
+  "build": {
+    "linux": {
+      "buildTags": "gtk3"
+    }
+  }
+}
