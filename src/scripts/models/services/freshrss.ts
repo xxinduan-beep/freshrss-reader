@@ -274,6 +274,7 @@ export const freshRSSServiceHooks: ServiceHooks = {
         const items = new Array()
         let fetchedItems: any[]
         let continuation: string
+        let hitLastId = false
         do {
             try {
                 const limit = Math.min(fetchLimit - items.length, 1000)
@@ -290,6 +291,7 @@ export const freshRSSServiceHooks: ServiceHooks = {
                 for (let i of fetchedItems) {
                     i.id = compactId(i.id)
                     if (i.id === configs.lastId || items.length >= fetchLimit) {
+                        hitLastId = true
                         break
                     } else {
                         items.push(i)
@@ -300,7 +302,7 @@ export const freshRSSServiceHooks: ServiceHooks = {
                 console.warn("[FreshRSS] fetchItems failed:", err)
                 break
             }
-        } while (continuation && items.length < fetchLimit)
+        } while (continuation && items.length < fetchLimit && !hitLastId)
         if (items.length > 0) {
             configs.lastId = items[0].id
         }

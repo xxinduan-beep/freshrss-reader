@@ -246,13 +246,28 @@ function fetchItems(
     return async (dispatch, getState) => {
         const [items, configs] = await dispatch(hook())
         if (items.length > 0) {
-            const inserted = await insertItems(items)
-            dispatch(fetchItemsSuccess(inserted.reverse(), getState().items))
-            if (background) {
-                for (let item of inserted) {
-                    if (item.notify) dispatch(pushNotification(item))
+            const refRows = (await db.itemsDB
+                .select(db.items.serviceRef)
+                .from(db.items)
+                .where(db.items.serviceRef.isNotNull())
+                .exec()) as { serviceRef: string }[]
+            const known = new Set(refRows.map(row => row["serviceRef"]))
+            const toInsert = items.filter(i => {
+                if (!i.serviceRef || known.has(i.serviceRef)) return false
+                known.add(i.serviceRef)
+                return true
+            })
+            if (toInsert.length > 0) {
+                const inserted = await insertItems(toInsert)
+                dispatch(
+                    fetchItemsSuccess(inserted.reverse(), getState().items)
+                )
+                if (background) {
+                    for (let item of inserted) {
+                        if (item.notify) dispatch(pushNotification(item))
+                    }
+                    if (inserted.length > 0) window.utils.requestAttention()
                 }
-                if (inserted.length > 0) window.utils.requestAttention()
             }
             dispatch(saveServiceConfigs(configs))
         }
