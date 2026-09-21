@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from "react-redux"
 import { Icon } from "@fluentui/react/lib/Icon"
 import { IObjectWithKey } from "@fluentui/react"
 import { RootState } from "../scripts/reducer"
-import { fetchItems, markAllRead } from "../scripts/models/item"
+import { fetchItems } from "../scripts/models/item"
 import {
     makeStyles,
     mergeClasses,
@@ -18,7 +18,7 @@ import {
     openViewMenu,
     openMarkAllMenu,
 } from "../scripts/models/app"
-import { toggleSearch } from "../scripts/models/page"
+import { toggleSearch, markAllReadAndAdvance } from "../scripts/models/page"
 import { ViewType, WindowStateListenerType } from "../schema-types"
 import { FlatButton } from "./utils/FlatButton"
 import { FlatButtonGroup } from "./utils/FlatButtonGroup"
@@ -128,7 +128,10 @@ const Nav: React.FC = () => {
     const search = useCallback(() => dispatch(toggleSearch()), [dispatch])
     const settings = useCallback(() => dispatch(toggleSettings()), [dispatch])
     const markAll = useCallback(() => dispatch(openMarkAllMenu()), [dispatch])
-    const markAllDirect = useCallback(() => dispatch(markAllRead()), [dispatch])
+    const markAllDirect = useCallback(
+        () => dispatch(markAllReadAndAdvance()),
+        [dispatch]
+    )
     const views = useCallback(() => {
         if (state.contextMenu.event !== "#view-toggle") {
             dispatch(openViewMenu())

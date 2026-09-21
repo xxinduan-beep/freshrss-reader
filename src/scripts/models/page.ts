@@ -2,6 +2,7 @@ import {
     ALL,
     SOURCE,
     loadMore,
+    dismissItems,
     FeedFilter,
     FilterType,
     initFeeds,
@@ -9,7 +10,7 @@ import {
     INIT_FEED,
 } from "./feed"
 import { getWindowBreakpoint, AppThunk, ActionStatus } from "../utils"
-import { RSSItem, markRead } from "./item"
+import { RSSItem, markAllRead, markRead } from "./item"
 import { SourceActionTypes, DELETE_SOURCE } from "./source"
 import { fetchSourceUnread } from "./service"
 import { toggleMenu } from "./app"
@@ -116,8 +117,6 @@ export function selectNextUnreadSource(): AppThunk {
         const state = getState()
         if (state.page.feedId !== SOURCE) return
         const menuKey = state.app.menuKey
-        if (!menuKey.startsWith("s-")) return
-        const currentSid = Number.parseInt(menuKey.split("-")[1])
         const orderedSids: number[] = []
         for (let group of state.groups) {
             for (let sid of group.sids) {
@@ -129,9 +128,23 @@ export function selectNextUnreadSource(): AppThunk {
                 orderedSids.push(source.sid)
             }
         }
-        const nextSid = orderedSids.find(
+        const currentSids: number[] = []
+        if (menuKey.startsWith("s-")) {
+            currentSids.push(Number.parseInt(menuKey.split("-")[1]))
+        } else if (menuKey.startsWith("g-")) {
+            const group = state.groups[Number.parseInt(menuKey.split("-")[1])]
+            if (group) currentSids.push(...group.sids)
+        }
+        const startIndex =
+            currentSids.length > 0
+                ? orderedSids.indexOf(currentSids[currentSids.length - 1]) + 1
+                : 0
+        const candidates = [
+            ...orderedSids.slice(startIndex),
+            ...orderedSids.slice(0, startIndex),
+        ].filter(sid => !currentSids.includes(sid))
+        const nextSid = candidates.find(
             sid =>
-                sid !== currentSid &&
                 state.sources[sid] &&
                 !state.sources[sid].hidden &&
                 state.sources[sid].unreadCount > 0
@@ -142,6 +155,14 @@ export function selectNextUnreadSource(): AppThunk {
             dispatch(initFeeds())
             dispatch(fetchSourceUnread([nextSid]))
         }
+    }
+}
+
+export function markAllReadAndAdvance(): AppThunk<Promise<void>> {
+    return async dispatch => {
+        await dispatch(markAllRead())
+        dispatch(dismissItems())
+        dispatch(selectNextUnreadSource())
     }
 }
 

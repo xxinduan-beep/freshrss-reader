@@ -36,6 +36,7 @@ import {
     switchFilter,
     switchView,
     toggleFilter,
+    markAllReadAndAdvance,
 } from "../scripts/models/page"
 
 export const shareSubmenu = (item: RSSItem): IContextualMenuItem[] => [
@@ -604,7 +605,7 @@ function MarkReadContextMenu() {
                         text: intl.get("allArticles"),
                         iconProps: { iconName: "ReceiptCheck" },
                         onClick: () => {
-                            dispatch(markAllRead())
+                            dispatch(markAllReadAndAdvance())
                         },
                     },
                     {

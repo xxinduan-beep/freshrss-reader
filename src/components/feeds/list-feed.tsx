@@ -120,7 +120,7 @@ const ListFeed: React.FC<FeedProps> = props => {
                         <PrimaryButton
                             id="mark-read"
                             text={intl.get("nav.markAllRead")}
-                            onClick={() => props.markAllRead(props.items)}
+                            onClick={() => props.markAllRead()}
                         />
                     </div>
                 ) : null}
