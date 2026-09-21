@@ -121,9 +121,7 @@ const CardsFeed: React.FC<FeedProps> = props => {
                         />
                     </div>
                 ) : null}
-                {props.feed.loaded &&
-                props.feed.allLoaded &&
-                props.items.some(i => !i.hasRead) ? (
+                {props.feed.loaded && props.items.some(i => !i.hasRead) ? (
                     <div className="load-more-wrapper">
                         <PrimaryButton
                             id="mark-read"

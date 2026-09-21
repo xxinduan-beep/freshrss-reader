@@ -421,27 +421,37 @@ export function feedReducer(
             }
         case LOAD_MORE:
             switch (action.status) {
-                case ActionStatus.Request:
+                case ActionStatus.Request: {
+                    // Rebase on the current state instead of the feed object
+                    // captured at dispatch time, so concurrent updates (e.g. a
+                    // background sync merging new items) are not clobbered.
+                    const current = state[action.feed._id]
                     return {
                         ...state,
                         [action.feed._id]: {
-                            ...action.feed,
+                            ...current,
                             loading: true,
                         },
                     }
-                case ActionStatus.Success:
+                }
+                case ActionStatus.Success: {
+                    const current = state[action.feed._id]
+                    const existing = new Set(current.iids)
                     return {
                         ...state,
                         [action.feed._id]: {
-                            ...action.feed,
+                            ...current,
                             loading: false,
                             allLoaded: action.items.length < LOAD_QUANTITY,
                             iids: [
-                                ...action.feed.iids,
-                                ...action.items.map(i => i._id),
+                                ...current.iids,
+                                ...action.items
+                                    .map(i => i._id)
+                                    .filter(id => !existing.has(id)),
                             ],
                         },
                     }
+                }
                 case ActionStatus.Failure:
                     return {
                         ...state,

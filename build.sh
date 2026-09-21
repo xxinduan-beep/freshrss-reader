@@ -29,6 +29,14 @@ echo "Built bin/freshrss-reader"
 
 # 3. Cross-compile the Windows binary (no gtk3 tag: Wails uses the
 # native WebView2 backend). -H windowsgui avoids a console window.
+# The application icon and version info come from rsrc_windows_amd64.syso
+# in the repo root, which the Go linker picks up automatically. Regenerate
+# it after changing the icon or version with:
+#   go run github.com/tc-hib/go-winres@v0.3.3 simply --arch amd64 \
+#       --manifest gui --icon build/icon.ico --product-name "FreshRSS Reader" \
+#       --product-version 1.0.0.0 --file-version 1.0.0.0 \
+#       --file-description "FreshRSS desktop RSS client" \
+#       --original-filename FreshRSS-Reader.exe --out rsrc
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
     go build -trimpath -ldflags "-s -w -H windowsgui" \
     -o bin/FreshRSS-Reader.exe .

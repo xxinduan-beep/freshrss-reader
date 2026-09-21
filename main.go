@@ -63,6 +63,9 @@ func main() {
 			Handler:    assetHandler(),
 			Middleware: assetMiddleware(api.Handler()),
 		},
+		Windows: application.WindowsOptions{
+			WndProcInterceptor: iconWndProcInterceptor,
+		},
 	})
 	api.App = app
 
