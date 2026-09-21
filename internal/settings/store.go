@@ -16,14 +16,30 @@ type Store struct {
 	data map[string]interface{}
 }
 
-// DataDir returns the application configuration directory, matching the
-// electron userData directory (~/.config/freshrss-reader on Linux).
+// DataDir returns the directory containing the executable, making the
+// application portable: the settings file lives next to the binary instead
+// of in ~/.config/freshrss-reader.
 func DataDir() (string, error) {
-	base, err := os.UserConfigDir()
+	exe, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(base, "freshrss-reader"), nil
+	return filepath.Dir(exe), nil
+}
+
+// CacheDir returns <executable dir>/cache, creating it when missing. It is
+// used as the XDG base directory for the webview's website data (IndexedDB,
+// localStorage) and HTTP cache.
+func CacheDir() (string, error) {
+	dir, err := DataDir()
+	if err != nil {
+		return "", err
+	}
+	cache := filepath.Join(dir, "cache")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		return "", err
+	}
+	return cache, nil
 }
 
 // Open loads the settings file, migrating the legacy electron-store
@@ -114,31 +130,31 @@ func (s *Store) All() map[string]interface{} {
 func (s *Store) GetAllWithDefaults() map[string]interface{} {
 	out := s.All()
 	defaults := map[string]interface{}{
-		"sourceGroups":           []interface{}{},
-		"menuOn":                 false,
-		"pac":                    "",
-		"pacOn":                  false,
-		"view":                   0, // ViewType.Cards
-		"theme":                  "system",
-		"locale":                 "default",
-		"fontSize":               16,
-		"fontFamily":             "",
-		"fetchInterval":          0,
-		"searchEngine":           0, // SearchEngines.Google
-		"serviceConfigs":         map[string]interface{}{"type": 0},
-		"filterType":             nil,
-		"cardsViewConfigs":       0,
-		"listViewConfigs":        1, // ViewConfigs.ShowCover
-		"magazineViewConfigs":    0,
-		"compactViewConfigs":     0,
-		"menuUnreadSourcesOnly":  false,
-		"scrollMarkReadOn":       false,
-		"version":                "1.0.0",
-		"windowX":                nil,
-		"windowY":                nil,
-		"windowWidth":            nil,
-		"windowHeight":           nil,
-		"windowMaximized":        false,
+		"sourceGroups":          []interface{}{},
+		"menuOn":                false,
+		"pac":                   "",
+		"pacOn":                 false,
+		"view":                  0, // ViewType.Cards
+		"theme":                 "system",
+		"locale":                "default",
+		"fontSize":              16,
+		"fontFamily":            "",
+		"fetchInterval":         0,
+		"searchEngine":          0, // SearchEngines.Google
+		"serviceConfigs":        map[string]interface{}{"type": 0},
+		"filterType":            nil,
+		"cardsViewConfigs":      0,
+		"listViewConfigs":       1, // ViewConfigs.ShowCover
+		"magazineViewConfigs":   0,
+		"compactViewConfigs":    0,
+		"menuUnreadSourcesOnly": false,
+		"scrollMarkReadOn":      false,
+		"version":               "1.0.0",
+		"windowX":               nil,
+		"windowY":               nil,
+		"windowWidth":           nil,
+		"windowHeight":          nil,
+		"windowMaximized":       false,
 	}
 	for k, v := range defaults {
 		if _, ok := out[k]; !ok {

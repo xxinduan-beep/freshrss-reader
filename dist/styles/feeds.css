@@ -21,14 +21,14 @@
     height: 100%;
     user-select: none;
 }
-.article webview,
+.article iframe,
 .article .error-prompt {
     width: 100%;
     height: calc(100% - 36px);
     border: none;
     color: var(--black);
 }
-.article webview.error {
+.article iframe.error {
     display: none;
 }
 .article i.ms-Icon {

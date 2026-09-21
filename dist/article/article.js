@@ -43,6 +43,20 @@ getArticle(url).then(article => {
     main.innerHTML = dom.body.innerHTML
     main.classList.add("show")
 });
+document.addEventListener("click", (evt) => {
+    if (evt.button !== 0 || !evt.isTrusted) return;
+    let target = evt.target;
+    while (target && target.nodeName !== "A") {
+        target = target.parentElement;
+    }
+    if (target && target.href && /^https?:/.test(target.href)) {
+        evt.preventDefault();
+        window.parent.postMessage({
+            type: "frss-webview-link",
+            url: target.href,
+        }, "*");
+    }
+}, true);
 document.addEventListener("keydown", (evt) => {
     if (evt.isTrusted) {
         window.parent.postMessage({

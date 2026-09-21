@@ -11,6 +11,7 @@ import {
 import { getWindowBreakpoint, AppThunk, ActionStatus } from "../utils"
 import { RSSItem, markRead } from "./item"
 import { SourceActionTypes, DELETE_SOURCE } from "./source"
+import { fetchSourceUnread } from "./service"
 import { toggleMenu } from "./app"
 import { ViewType, ViewConfigs } from "../../schema-types"
 
@@ -106,6 +107,40 @@ export function selectSources(
                 title: title,
                 init: true,
             } as PageActionTypes)
+        }
+    }
+}
+
+export function selectNextUnreadSource(): AppThunk {
+    return (dispatch, getState) => {
+        const state = getState()
+        if (state.page.feedId !== SOURCE) return
+        const menuKey = state.app.menuKey
+        if (!menuKey.startsWith("s-")) return
+        const currentSid = Number.parseInt(menuKey.split("-")[1])
+        const orderedSids: number[] = []
+        for (let group of state.groups) {
+            for (let sid of group.sids) {
+                if (!orderedSids.includes(sid)) orderedSids.push(sid)
+            }
+        }
+        for (let source of Object.values(state.sources)) {
+            if (!source.hidden && !orderedSids.includes(source.sid)) {
+                orderedSids.push(source.sid)
+            }
+        }
+        const nextSid = orderedSids.find(
+            sid =>
+                sid !== currentSid &&
+                state.sources[sid] &&
+                !state.sources[sid].hidden &&
+                state.sources[sid].unreadCount > 0
+        )
+        if (nextSid !== undefined) {
+            const source = state.sources[nextSid]
+            dispatch(selectSources([nextSid], "s-" + nextSid, source.name))
+            dispatch(initFeeds())
+            dispatch(fetchSourceUnread([nextSid]))
         }
     }
 }

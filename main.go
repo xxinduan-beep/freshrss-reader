@@ -30,6 +30,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to open settings: %v", err)
 	}
+
+	// Portable mode: point the XDG base directories at <exe dir>/cache so
+	// WebKitGTK stores the webview's website data (IndexedDB, localStorage)
+	// and HTTP cache there instead of under ~/.local/share and ~/.cache.
+	// This must happen before GTK/WebKit initialize, since GLib caches the
+	// XDG paths on first use.
+	cacheDir, err := settings.CacheDir()
+	if err != nil {
+		log.Fatalf("failed to prepare cache dir: %v", err)
+	}
+	os.Setenv("XDG_DATA_HOME", cacheDir)
+	os.Setenv("XDG_CACHE_HOME", cacheDir)
+
 	client := httpclient.New()
 
 	api := &server.API{

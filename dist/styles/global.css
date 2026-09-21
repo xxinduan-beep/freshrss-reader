@@ -144,10 +144,18 @@ body.linux {
 
 #root > nav {
     height: var(--navHeight);
+    /* Sit above .main (which overlaps the nav strip) so the blank title-bar
+       area receives mouse events and acts as the window drag region. */
+    position: relative;
+    z-index: 2;
     -webkit-app-region: drag;
     --wails-draggable: drag;
     user-select: none;
     overflow: hidden;
+}
+#root > nav button,
+#root > nav input {
+    --wails-draggable: no-drag;
 }
 #root > nav span {
     z-index: 1;

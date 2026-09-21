@@ -121,6 +121,17 @@ const CardsFeed: React.FC<FeedProps> = props => {
                         />
                     </div>
                 ) : null}
+                {props.feed.loaded &&
+                props.feed.allLoaded &&
+                props.items.some(i => !i.hasRead) ? (
+                    <div className="load-more-wrapper">
+                        <PrimaryButton
+                            id="mark-read"
+                            text={intl.get("nav.markAllRead")}
+                            onClick={() => props.markAllRead(props.items)}
+                        />
+                    </div>
+                ) : null}
                 {props.items.length === 0 && (
                     <div className="empty">{intl.get("article.empty")}</div>
                 )}

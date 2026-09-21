@@ -70,7 +70,7 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                     break
                 case "l":
                 case "L":
-                    this.openWebpage()
+                    this.openExternal()
                     break
                 case "H":
                 case "h":
@@ -175,17 +175,6 @@ class Article extends React.Component<ArticleProps, ArticleState> {
     moreMenuProps = (): IContextualMenuProps => ({
         items: [
             {
-                key: "openInBrowser",
-                text: intl.get("openExternal"),
-                iconProps: { iconName: "NavigateExternalInline" },
-                onClick: e => {
-                    window.utils.openExternal(
-                        this.props.item.link,
-                        platformCtrl(e)
-                    )
-                },
-            },
-            {
                 key: "copyURL",
                 text: intl.get("context.copyURL"),
                 iconProps: { iconName: "Link" },
@@ -280,9 +269,8 @@ class Article extends React.Component<ArticleProps, ArticleState> {
         if (refocus) refocus.focus()
     }
 
-    // Webpages cannot be embedded in a sandboxed iframe (most sites send
-    // X-Frame-Options), so the original webpage mode opens the system browser.
-    openWebpage = () => {
+    // Opens the article link in the system browser.
+    openExternal = () => {
         if (
             this.props.item.link.startsWith("https://") ||
             this.props.item.link.startsWith("http://")
@@ -380,9 +368,9 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                         }
                     />
                     <CommandBarButton
-                        title={intl.get("article.loadWebpage")}
-                        iconProps={{ iconName: "Globe" }}
-                        onClick={this.openWebpage}
+                        title={intl.get("openExternal")}
+                        iconProps={{ iconName: "NavigateExternalInline" }}
+                        onClick={this.openExternal}
                     />
                     <CommandBarButton
                         title={intl.get("more")}

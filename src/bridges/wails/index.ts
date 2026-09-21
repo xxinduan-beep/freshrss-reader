@@ -293,6 +293,7 @@ interface WebviewInput {
 }
 
 let webviewKeydownHandler: ((input: WebviewInput) => any) | null = null
+let webviewMessageListenerRegistered = false
 
 const utilsBridge = {
     platform: boot.platform,
@@ -397,14 +398,26 @@ const utilsBridge = {
 
     addWebviewKeydownListener: (callback: (event: WebviewInput) => any) => {
         webviewKeydownHandler = callback
+        // Register the article-iframe message relay only once: this is called
+        // from the Article constructor, so per-instance registration would
+        // accumulate listeners and repeat every message (e.g. one browser tab
+        // per registered listener for a single link click).
+        if (webviewMessageListenerRegistered) return
+        webviewMessageListenerRegistered = true
         window.addEventListener("message", ev => {
+            if (!ev.data || typeof ev.data !== "object") return
             if (
-                ev.data &&
-                typeof ev.data === "object" &&
                 ev.data.type === "frss-webview-keydown" &&
                 webviewKeydownHandler
             ) {
                 webviewKeydownHandler(ev.data.input)
+            } else if (
+                // Links clicked in the article iframe are opened in the
+                // system browser; in-frame navigation is blocked by WebKit.
+                ev.data.type === "frss-webview-link" &&
+                typeof ev.data.url === "string"
+            ) {
+                utilsBridge.openExternal(ev.data.url)
             }
         })
     },
