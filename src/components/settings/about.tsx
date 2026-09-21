@@ -38,7 +38,7 @@ const AboutTab: React.FC = () => {
                         <Link
                             onClick={() =>
                                 globalThis.utils.openExternal(
-                                    "https://github.com/yang991178/fluent-reader"
+                                    "https://github.com/xxinduan-beep/freshrss-reader"
                                 )
                             }>
                             {intl.get("settings.openSource")}
