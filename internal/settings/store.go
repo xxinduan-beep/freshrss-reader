@@ -149,6 +149,7 @@ func (s *Store) GetAllWithDefaults() map[string]interface{} {
 		"compactViewConfigs":    0,
 		"menuUnreadSourcesOnly": false,
 		"scrollMarkReadOn":      false,
+		"closeToTray":           false,
 		"version":               "1.0.0",
 		"windowX":               nil,
 		"windowY":               nil,

@@ -36,6 +36,7 @@ type AppTabState = {
     pacStatus: boolean
     pacUrl: string
     themeSettings: ThemeSettings
+    closeToTray: boolean
     itemSize: string
     cacheSize: string
     deleteIndex: string
@@ -48,6 +49,7 @@ class AppTab extends React.Component<AppTabProps, AppTabState> {
             pacStatus: window.settings.getProxyStatus(),
             pacUrl: window.settings.getProxy(),
             themeSettings: getThemeSettings(),
+            closeToTray: window.settings.getCloseToTray(),
             itemSize: null,
             cacheSize: null,
             deleteIndex: null,
@@ -147,6 +149,12 @@ class AppTab extends React.Component<AppTabProps, AppTabState> {
             pacStatus: window.settings.getProxyStatus(),
             pacUrl: window.settings.getProxy(),
         })
+    }
+
+    toggleCloseToTray = () => {
+        const next = !this.state.closeToTray
+        window.settings.setCloseToTray(next)
+        this.setState({ closeToTray: next })
     }
 
     handleInputChange = event => {
@@ -267,6 +275,20 @@ class AppTab extends React.Component<AppTabProps, AppTabState> {
                         {intl.get("app.pacHint")}
                     </span>
                 </form>
+            )}
+
+            {window.utils.platform === "win32" && (
+                <Stack horizontal verticalAlign="baseline">
+                    <Stack.Item grow>
+                        <Label>{intl.get("app.closeToTray")}</Label>
+                    </Stack.Item>
+                    <Stack.Item>
+                        <Toggle
+                            checked={this.state.closeToTray}
+                            onChange={this.toggleCloseToTray}
+                        />
+                    </Stack.Item>
+                </Stack>
             )}
 
             <Label>{intl.get("app.cleanup")}</Label>

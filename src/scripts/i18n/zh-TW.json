@@ -236,6 +236,8 @@
         "setPac": "設定PAC",
         "pacHint": "對於Socks代理建議PAC返回“SOCKS5”以啟用代理端解析。關閉代理需重啟應用後生效。",
         "fetchInterval": "自動抓取頻率",
-        "never": "從不"
+        "never": "從不",
+        "closeToTray": "關閉時最小化到通知區域",
+        "newArticles": "{count} 篇新文章"
     }
 }

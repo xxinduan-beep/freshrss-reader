@@ -29,12 +29,14 @@ const Version = "1.0.0"
 
 // API carries the dependencies shared by all handlers.
 type API struct {
-	Store         *settings.Store
-	Client        *httpclient.Client
-	App           *application.App
-	Window        func() application.Window
-	RestartWindow func()
-	ShouldUseDark func() bool
+	Store          *settings.Store
+	Client         *httpclient.Client
+	App            *application.App
+	Window         func() application.Window
+	RestartWindow  func()
+	ShouldUseDark  func() bool
+	TrayNotify     func(title, body string)
+	SetTrayEnabled func(on bool)
 }
 
 // Handler builds the /api/desktop mux.
@@ -58,6 +60,7 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("POST /api/desktop/window/close", a.closeWindow)
 	mux.HandleFunc("POST /api/desktop/window/minimize", a.minimizeWindow)
 	mux.HandleFunc("POST /api/desktop/window/zoom", a.zoomWindow)
+	mux.HandleFunc("POST /api/desktop/notify", a.notify)
 	mux.HandleFunc("POST /api/desktop/window/focus", a.focusWindow)
 	mux.HandleFunc("POST /api/desktop/window/attention", a.requestAttention)
 	mux.HandleFunc("GET /api/desktop/window/state", a.windowState)
@@ -131,6 +134,11 @@ func (a *API) setSetting(w http.ResponseWriter, r *http.Request) {
 	// re-evaluates shouldUseDarkColors and notifies the renderer.
 	if body.Key == "theme" {
 		a.App.Event.Emit("theme-updated", a.ShouldUseDark())
+	}
+	// Toggle the Windows tray icon live when close-to-tray changes.
+	if body.Key == "closeToTray" && a.SetTrayEnabled != nil {
+		on, _ := value.(bool)
+		a.SetTrayEnabled(on)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -437,7 +445,13 @@ func (a *API) closeWindow(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) minimizeWindow(w http.ResponseWriter, r *http.Request) {
 	if win := a.Window(); win != nil {
-		win.Minimise()
+		// Minimize-to-tray: hide instead of minimising so no taskbar
+		// button is left behind; the tray icon restores the window.
+		if runtime.GOOS == "windows" && a.Store.GetBool("closeToTray", false) {
+			win.Hide()
+		} else {
+			win.Minimise()
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -460,9 +474,14 @@ func (a *API) focusWindow(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// requestAttention mirrors Electron's win.flashFrame(true): flash the
+// taskbar button without stealing the foreground. Calling Focus() here
+// makes Windows deny the foreground switch (the process is in the
+// background), which leaves the window stuck behind others and breaks
+// taskbar-click activation.
 func (a *API) requestAttention(w http.ResponseWriter, r *http.Request) {
 	if win := a.Window(); win != nil && !win.IsFocused() {
-		win.Focus()
+		win.Flash(true)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -472,13 +491,32 @@ func (a *API) windowState(w http.ResponseWriter, r *http.Request) {
 		"maximized":  false,
 		"fullscreen": false,
 		"focused":    false,
+		"hidden":     false,
 	}
 	if win := a.Window(); win != nil {
 		state["maximized"] = win.IsMaximised()
 		state["fullscreen"] = win.IsFullscreen()
 		state["focused"] = win.IsFocused()
+		state["hidden"] = !win.IsVisible()
 	}
 	writeJSON(w, state)
+}
+
+// notify shows a tray balloon notification (Windows). Used while the window
+// is hidden to the tray, where the web Notification API cannot restore the
+// window on click.
+func (a *API) notify(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Title string `json:"title"`
+		Body  string `json:"body"`
+	}
+	if !readJSON(w, r, &body) {
+		return
+	}
+	if a.TrayNotify != nil {
+		a.TrayNotify(body.Title, body.Body)
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) fonts(w http.ResponseWriter, r *http.Request) {

@@ -51,6 +51,9 @@ interface FetchItemsAction {
     fetchCount?: number
     items?: RSSItem[]
     itemState?: ItemState
+    // Background fetches (auto-fetch timer) keep new items in the caches
+    // only; the feed reducer skips merging them into loaded reading lists.
+    background?: boolean
     errSource?: RSSSource
     err?
 }
@@ -100,13 +103,15 @@ export function fetchItemsRequest(fetchCount = 0): ItemActionTypes {
 
 export function fetchItemsSuccess(
     items: RSSItem[],
-    itemState: ItemState
+    itemState: ItemState,
+    background = false
 ): ItemActionTypes {
     return {
         type: FETCH_ITEMS,
         status: ActionStatus.Success,
         items: items,
         itemState: itemState,
+        background: background,
     }
 }
 

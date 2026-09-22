@@ -78,6 +78,28 @@ func main() {
 	api.Window = func() application.Window { return win }
 	api.ShouldUseDark = func() bool { return shouldUseDark(store) }
 	win = createWindow(app, store)
+
+	// Windows tray icon: left click or notification click restores the
+	// window; the right-click menu offers show/quit. The icon is created
+	// for the close-to-tray setting and toggled live from the API layer.
+	tray := newTray(
+		func() string { return store.GetString("locale", "default") },
+		func() { showMainWindow(api) },
+		func() {
+			quitting = true
+			app.Quit()
+		},
+	)
+	defer tray.Destroy()
+	tray.SetEnabled(store.GetBool("closeToTray", false))
+	api.TrayNotify = tray.Notify
+	api.SetTrayEnabled = tray.SetEnabled
+	// Minimize-to-tray: SC_MINIMIZE hides the window instead (see
+	// iconWndProcInterceptor).
+	closeToTrayEnabled = func() bool {
+		return store.GetBool("closeToTray", false)
+	}
+
 	api.RestartWindow = func() {
 		application.InvokeAsync(func() {
 			if win != nil {
@@ -88,7 +110,7 @@ func main() {
 		})
 	}
 
-	registerWindowHooks(app, store, win)
+	registerWindowHooks(app, store, win, tray)
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
@@ -137,6 +159,33 @@ func shouldUseDark(store *settings.Store) bool {
 	}
 }
 
+// quitting marks an explicit exit (tray menu or window close with
+// close-to-tray disabled) so the WindowClosing hook does not re-hide the
+// window instead of letting the app terminate.
+var quitting bool
+
+// closeToTrayEnabled mirrors the closeToTray setting for the Windows
+// WndProcInterceptor: when on, minimize commands hide the window into the
+// tray instead. Declared here because main.go is built for all platforms;
+// only the Windows interceptor reads it.
+var closeToTrayEnabled func() bool
+
+// showMainWindow restores the window from the tray: hidden and/or minimised
+// windows are shown, restored and focused. Called from tray clicks, which
+// grant the process foreground rights, so Focus() is not blocked by the
+// foreground lock here.
+func showMainWindow(api *server.API) {
+	win := api.Window()
+	if win == nil {
+		return
+	}
+	win.Show()
+	if win.IsMinimised() {
+		win.UnMinimise()
+	}
+	win.Focus()
+}
+
 func createWindow(app *application.App, store *settings.Store) application.Window {
 	width := store.GetInt("windowWidth", 1200)
 	height := store.GetInt("windowHeight", 700)
@@ -179,7 +228,7 @@ func backgroundColour(store *settings.Store) application.RGBA {
 
 // registerWindowHooks forwards window state changes to the renderer as Wails
 // events using the original Electron channel names, and persists bounds.
-func registerWindowHooks(app *application.App, store *settings.Store, win application.Window) {
+func registerWindowHooks(app *application.App, store *settings.Store, win application.Window, tray *tray) {
 	persist := func() {
 		if win == nil {
 			return
@@ -209,6 +258,8 @@ func registerWindowHooks(app *application.App, store *settings.Store, win applic
 		app.Event.Emit("leave-fullscreen")
 	})
 	win.RegisterHook(events.Common.WindowFocus, func(e *application.WindowEvent) {
+		// Stop a requestAttention flash once the user activates the window.
+		win.Flash(false)
 		app.Event.Emit("window-focus")
 	})
 	win.RegisterHook(events.Common.WindowLostFocus, func(e *application.WindowEvent) {
@@ -223,6 +274,16 @@ func registerWindowHooks(app *application.App, store *settings.Store, win applic
 	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		persist()
 		_ = store.Set("windowMaximized", win.IsMaximised())
+		// Close-to-tray: hide instead of quitting so background refresh
+		// keeps running. Windows only, where the tray icon provides a way
+		// back to the window.
+		if runtime.GOOS == "windows" && !quitting &&
+			store.GetBool("closeToTray", false) {
+			win.Hide()
+			return
+		}
+		quitting = true
+		tray.Destroy()
 		app.Quit()
 	})
 }

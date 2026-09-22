@@ -366,6 +366,11 @@ export function feedReducer(
         case FETCH_ITEMS:
             switch (action.status) {
                 case ActionStatus.Success: {
+                    // Background fetches (auto-fetch timer) only refill the
+                    // item and unread-count caches; new items join the
+                    // reading lists on the next feed switch or manual
+                    // refresh, so reading is never interrupted mid-list.
+                    if (action.background) return state
                     let nextState = { ...state }
                     for (let feed of Object.values(state)) {
                         if (feed.loaded) {

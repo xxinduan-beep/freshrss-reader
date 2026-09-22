@@ -256,6 +256,14 @@ const settingsBridge = {
         api("settings/set", { key: "scrollMarkReadOn", value: flag })
     },
 
+    getCloseToTray: (): boolean => {
+        return snap("closeToTray", false)
+    },
+    setCloseToTray: (flag: boolean) => {
+        setSnap("closeToTray", flag)
+        api("settings/set", { key: "closeToTray", value: flag })
+    },
+
     getAll: () => {
         return { ...boot.settings }
     },
@@ -454,6 +462,16 @@ const utilsBridge = {
     },
     requestAttention: () => {
         api("window/attention", {})
+    },
+    // True when the window is hidden (e.g. closed to the Windows tray).
+    isWindowHidden: () => {
+        const state = apiSync("window/state")
+        return state ? !!state.hidden : false
+    },
+    // Native tray notification (Windows balloon/toast). Clicking it
+    // restores the hidden window.
+    showNotification: (title: string, body: string) => {
+        api("notify", { title: title, body: body })
     },
     addWindowStateListener: (
         callback: (type: WindowStateListenerType, state: boolean) => any

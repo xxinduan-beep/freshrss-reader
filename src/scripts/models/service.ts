@@ -1,5 +1,6 @@
 import * as db from "../db"
 import lf from "lovefield"
+import intl from "react-intl-universal"
 import { SyncService, ServiceConfigs } from "../../schema-types"
 import { AppThunk, ActionStatus } from "../utils"
 import { RSSItem, insertItems, fetchItemsSuccess } from "./item"
@@ -260,13 +261,33 @@ function fetchItems(
             if (toInsert.length > 0) {
                 const inserted = await insertItems(toInsert)
                 dispatch(
-                    fetchItemsSuccess(inserted.reverse(), getState().items)
+                    fetchItemsSuccess(
+                        inserted.reverse(),
+                        getState().items,
+                        background
+                    )
                 )
                 if (background) {
-                    for (let item of inserted) {
-                        if (item.notify) dispatch(pushNotification(item))
+                    if (inserted.length > 0 && window.utils.isWindowHidden()) {
+                        // Hidden to the tray: one native notification for
+                        // the batch; clicking it restores the window. The
+                        // web Notification API and taskbar flash would be
+                        // invisible here.
+                        const first = inserted[0]
+                        window.utils.showNotification(
+                            intl.get("app.newArticles", {
+                                count: inserted.length,
+                            }),
+                            `${getState().sources[first.source].name} · ${
+                                first.title
+                            }`
+                        )
+                    } else {
+                        for (let item of inserted) {
+                            if (item.notify) dispatch(pushNotification(item))
+                        }
+                        if (inserted.length > 0) window.utils.requestAttention()
                     }
-                    if (inserted.length > 0) window.utils.requestAttention()
                 }
             }
             dispatch(saveServiceConfigs(configs))
