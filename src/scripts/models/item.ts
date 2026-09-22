@@ -2,7 +2,14 @@ import * as db from "../db"
 import lf from "lovefield"
 import { ActionStatus, AppThunk, platformCtrl } from "../utils"
 import { RSSSource, updateUnreadCounts } from "./source"
-import { FeedActionTypes, INIT_FEED, LOAD_MORE, dismissItems } from "./feed"
+import {
+    FeedActionTypes,
+    INIT_FEED,
+    LOAD_MORE,
+    dismissItems,
+    RSSFeed,
+    initFeedSuccess,
+} from "./feed"
 import {
     pushNotification,
     setupAutoFetch,
@@ -157,11 +164,24 @@ export function fetchItems(
                 await dispatch(syncWithService(background))
             dispatch(fetchItemsRequest(0))
             insertItems([])
-                .then(inserted => {
+                .then(async inserted => {
                     dispatch(
                         fetchItemsSuccess(inserted.reverse(), getState().items)
                     )
                     if (!background) {
+                        // Reconcile the current feed with the DB: a
+                        // background auto-fetch may have cached items
+                        // without touching the reading list, and the
+                        // incremental service fetch skips items already
+                        // stored, so a manual refresh must reload it.
+                        const feed = getState().feeds[getState().page.feedId]
+                        if (feed && feed.loaded) {
+                            await RSSFeed.loadFeed(feed)
+                                .then(items =>
+                                    dispatch(initFeedSuccess(feed, items))
+                                )
+                                .catch(err => console.log(err))
+                        }
                         dispatch(dismissItems())
                     }
                     dispatch(setupAutoFetch())
