@@ -82,11 +82,11 @@ func (a *API) logMessage(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) boot(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]interface{}{
-		"settings":      a.Store.GetAllWithDefaults(),
-		"platform":      platforminfo.Platform(),
-		"version":       Version,
-		"fontList":      platforminfo.Fonts(),
-		"systemDark":    theme.SystemDark(),
+		"settings":       a.Store.GetAllWithDefaults(),
+		"platform":       platforminfo.Platform(),
+		"version":        Version,
+		"fontList":       platforminfo.Fonts(),
+		"systemDark":     theme.SystemDark(),
 		"resolvedLocale": resolvedLocale(),
 	})
 }
