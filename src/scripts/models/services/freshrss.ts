@@ -11,6 +11,7 @@ import { domParser } from "../../utils"
 const ALL_TAG = "user/-/state/com.google/reading-list"
 const READ_TAG = "user/-/state/com.google/read"
 const STAR_TAG = "user/-/state/com.google/starred"
+const LABEL_PREFIX = "user/-/label/"
 
 export interface FreshRSSConfigs extends ServiceConfigs {
     type: SyncService.FreshRSS
@@ -149,6 +150,55 @@ async function editTag(
 ) {
     const body = new URLSearchParams(`i=${ref}&${add ? "a" : "r"}=${tag}`)
     return await fetchAPI(configs, "/reader/api/0/edit-tag", "POST", body)
+}
+
+// Lists the article tags (FreshRSS "labels") available on the server.
+// Feed folders are also returned by tag/list but carry type "folder",
+// so they are excluded here.
+async function fetchArticleTags(configs: FreshRSSConfigs): Promise<string[]> {
+    const response = await fetchAPI(
+        configs,
+        "/reader/api/0/tag/list?output=json"
+    )
+    if (response.status !== 200) throw APIError()
+    const data = await response.json()
+    const tags = new Array<string>()
+    for (let t of data.tags ?? []) {
+        if (
+            t.type === "tag" &&
+            typeof t.id === "string" &&
+            t.id.startsWith(LABEL_PREFIX)
+        ) {
+            tags.push(t.id.substring(LABEL_PREFIX.length))
+        }
+    }
+    return tags.sort()
+}
+
+// An entry's categories mix the feed's folder with its applied article
+// tags under the same user/-/label/ prefix; intersecting with the
+// tag/list result (type "tag") separates the two.
+async function fetchItemLabels(
+    configs: FreshRSSConfigs,
+    item: RSSItem
+): Promise<Set<string>> {
+    const body = new URLSearchParams(`i=${item.serviceRef}`)
+    const response = await fetchAPI(
+        configs,
+        "/reader/api/0/stream/items/contents?output=json",
+        "POST",
+        body
+    )
+    if (response.status !== 200) throw APIError()
+    const data = await response.json()
+    const labels = new Set<string>()
+    const entries: any[] = data.items ?? []
+    for (let c of entries[0]?.categories ?? []) {
+        if (typeof c === "string" && c.startsWith(LABEL_PREFIX)) {
+            labels.add(c.substring(LABEL_PREFIX.length))
+        }
+    }
+    return labels
 }
 
 function compactId(longId: string) {
@@ -562,6 +612,32 @@ export const freshRSSServiceHooks: ServiceHooks = {
             item.serviceRef,
             STAR_TAG,
             false
+        )
+    },
+
+    fetchTags: () => async (_, getState) => {
+        return await fetchArticleTags(getState().service as FreshRSSConfigs)
+    },
+
+    fetchItemTags: (item: RSSItem) => async (_, getState) => {
+        const configs = getState().service as FreshRSSConfigs
+        const [tags, labels] = await Promise.all([
+            fetchArticleTags(configs),
+            fetchItemLabels(configs, item),
+        ])
+        return tags.filter(t => labels.has(t))
+    },
+
+    applyItemTags: (item: RSSItem, added, removed) => async (_, getState) => {
+        const body = new URLSearchParams()
+        body.append("i", item.serviceRef)
+        for (let t of added) body.append("a", LABEL_PREFIX + t)
+        for (let t of removed) body.append("r", LABEL_PREFIX + t)
+        await fetchAPI(
+            getState().service as FreshRSSConfigs,
+            "/reader/api/0/edit-tag",
+            "POST",
+            body
         )
     },
 }

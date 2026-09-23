@@ -50,6 +50,10 @@
         "subscriptions": "Prenumerationer"
     },
     "article": {
+        "tags": "Redigera taggar",
+        "newTag": "Ny tagg",
+        "addTag": "Lägg till",
+        "noTags": "Inga taggar",
         "error": "Kunde inte läsa in artikeln.",
         "reload": "Vill du läsa in igen?",
         "empty": "Inga artiklar",

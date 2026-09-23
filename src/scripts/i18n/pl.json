@@ -51,6 +51,10 @@
         "subscriptions": "Subskrypcje"
     },
     "article": {
+        "tags": "Edytuj tagi",
+        "newTag": "Nowy tag",
+        "addTag": "Dodaj",
+        "noTags": "Brak tagów",
         "error": "Nie załadowano wpisu.",
         "reload": "Przeładować?",
         "empty": "Brak wpisów",

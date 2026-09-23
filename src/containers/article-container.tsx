@@ -8,6 +8,9 @@ import {
     toggleStarred,
     toggleHidden,
     itemShortcuts,
+    fetchAvailableTags,
+    fetchItemTags,
+    updateItemTags,
 } from "../scripts/models/item"
 import { AppDispatch } from "../scripts/utils"
 import { dismissItem, showOffsetItem } from "../scripts/models/page"
@@ -53,6 +56,10 @@ const mapDispatchToProps = (dispatch: AppDispatch) => {
         toggleHasRead: (item: RSSItem) =>
             dispatch(item.hasRead ? markUnread(item) : markRead(item)),
         toggleStarred: (item: RSSItem) => dispatch(toggleStarred(item)),
+        fetchAvailableTags: () => dispatch(fetchAvailableTags()),
+        fetchItemTags: (item: RSSItem) => dispatch(fetchItemTags(item)),
+        updateItemTags: (item: RSSItem, added: string[], removed: string[]) =>
+            dispatch(updateItemTags(item, added, removed)),
         toggleHidden: (item: RSSItem) => {
             if (!item.hidden) dispatch(dismissItem())
             if (!item.hasRead && !item.hidden) dispatch(markRead(item))

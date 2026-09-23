@@ -51,6 +51,10 @@
         "subscriptions": "订阅源"
     },
     "article": {
+        "tags": "编辑标签",
+        "newTag": "新标签",
+        "addTag": "添加",
+        "noTags": "暂无标签",
         "error": "文章加载失败",
         "reload": "重新加载",
         "empty": "无文章",

@@ -51,6 +51,10 @@
         "subscriptions": "Subscriptions"
     },
     "article": {
+        "tags": "Edit tags",
+        "newTag": "New tag",
+        "addTag": "Add",
+        "noTags": "No tags yet",
         "error": "Failed to load article.",
         "reload": "Reload?",
         "empty": "No articles",

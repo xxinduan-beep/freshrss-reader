@@ -45,6 +45,11 @@ getArticle(url).then(article => {
 });
 document.addEventListener("click", (evt) => {
     if (evt.button !== 0 || !evt.isTrusted) return;
+    // Clicks inside the iframe never reach the parent document, so the
+    // parent cannot detect outside clicks for popups (e.g. tag menu).
+    window.parent.postMessage({
+        type: "frss-webview-click",
+    }, "*");
     let target = evt.target;
     while (target && target.nodeName !== "A") {
         target = target.parentElement;

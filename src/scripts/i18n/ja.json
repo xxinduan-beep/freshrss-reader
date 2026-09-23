@@ -50,6 +50,10 @@
         "subscriptions": "購読"
     },
     "article": {
+        "tags": "タグを編集",
+        "newTag": "新しいタグ",
+        "addTag": "追加",
+        "noTags": "タグはありません",
         "error": "記事の読み込みに失敗しました。",
         "reload": "リロード",
         "empty": "記事なし",

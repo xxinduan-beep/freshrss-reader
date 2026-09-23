@@ -47,6 +47,10 @@
         "subscriptions": "Suscripciones"
     },
     "article": {
+        "tags": "Editar etiquetas",
+        "newTag": "Nueva etiqueta",
+        "addTag": "Añadir",
+        "noTags": "Sin etiquetas",
         "empty": "Sin artículos",
         "untitled": "(sin título)",
         "hide": "Ocultar artículo",

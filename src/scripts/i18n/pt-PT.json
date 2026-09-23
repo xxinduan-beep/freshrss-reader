@@ -51,6 +51,10 @@
         "subscriptions": "Subscrições"
     },
     "article": {
+        "tags": "Editar etiquetas",
+        "newTag": "Nova etiqueta",
+        "addTag": "Adicionar",
+        "noTags": "Sem etiquetas",
         "error": "Falha ao carregar o artigo.",
         "reload": "Recarregar?",
         "empty": "Nenhum artigo",

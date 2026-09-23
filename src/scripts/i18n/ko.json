@@ -50,6 +50,10 @@
         "subscriptions": "구독"
     },
     "article": {
+        "tags": "태그 편집",
+        "newTag": "새 태그",
+        "addTag": "추가",
+        "noTags": "태그 없음",
         "error": "글을 불러오지 못했습니다.",
         "reload": "다시 불러오시겠습니까?",
         "empty": "글 없음",

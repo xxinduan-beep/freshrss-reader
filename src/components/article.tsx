@@ -14,6 +14,7 @@ import {
 import { RSSSource, SourceTextDirection } from "../scripts/models/source"
 import { shareSubmenu } from "./context-menu"
 import { platformCtrl } from "../scripts/utils"
+import { TagEditor } from "./utils/tag-editor"
 import { Spinner } from "@fluentui/react-components"
 
 const FONT_SIZE_OPTIONS = [12, 13, 14, 15, 16, 17, 18, 19, 20]
@@ -28,6 +29,9 @@ type ArticleProps = {
     toggleHasRead: (item: RSSItem) => void
     toggleStarred: (item: RSSItem) => void
     toggleHidden: (item: RSSItem) => void
+    fetchAvailableTags: () => Promise<string[]>
+    fetchItemTags: (item: RSSItem) => Promise<string[]>
+    updateItemTags: (item: RSSItem, added: string[], removed: string[]) => void
     textMenu: (position: [number, number], text: string, url: string) => void
     imageMenu: (position: [number, number]) => void
     dismissContextMenu: () => void
@@ -366,6 +370,13 @@ class Article extends React.Component<ArticleProps, ArticleState> {
                         onClick={() =>
                             this.props.toggleStarred(this.props.item)
                         }
+                    />
+                    <TagEditor
+                        key={this.props.item._id}
+                        item={this.props.item}
+                        fetchAvailableTags={this.props.fetchAvailableTags}
+                        fetchItemTags={this.props.fetchItemTags}
+                        updateItemTags={this.props.updateItemTags}
                     />
                     <CommandBarButton
                         title={intl.get("openExternal")}

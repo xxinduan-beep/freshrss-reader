@@ -50,6 +50,10 @@
         "subscriptions": "Abonelikler"
     },
     "article": {
+        "tags": "Etiketleri düzenle",
+        "newTag": "Yeni etiket",
+        "addTag": "Ekle",
+        "noTags": "Etiket yok",
         "error": "Yazı yüklenemedi.",
         "reload": "Tekrar yükle?",
         "empty": "Yazı yok",

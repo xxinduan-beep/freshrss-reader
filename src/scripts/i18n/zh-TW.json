@@ -51,6 +51,10 @@
         "subscriptions": "訂閱源"
     },
     "article": {
+        "tags": "編輯標籤",
+        "newTag": "新標籤",
+        "addTag": "新增",
+        "noTags": "尚無標籤",
         "error": "文章載入失敗",
         "reload": "重新載入",
         "empty": "無文章",

@@ -50,6 +50,10 @@
         "subscriptions": "Iscrizioni"
     },
     "article": {
+        "tags": "Modifica etichette",
+        "newTag": "Nuova etichetta",
+        "addTag": "Aggiungi",
+        "noTags": "Nessuna etichetta",
         "error": "Errore nel caricare articolo",
         "reload": "Aggiorna?",
         "empty": "Non ci sono articoli",

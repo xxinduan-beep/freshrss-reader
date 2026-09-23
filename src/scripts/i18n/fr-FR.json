@@ -50,6 +50,10 @@
         "subscriptions": "Abonnements"
     },
     "article": {
+        "tags": "Modifier les étiquettes",
+        "newTag": "Nouvelle étiquette",
+        "addTag": "Ajouter",
+        "noTags": "Aucune étiquette",
         "error": "Impossible de charger l'article.",
         "reload": "Recharger ?",
         "empty": "Pas d'articles",

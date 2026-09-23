@@ -50,6 +50,10 @@
         "subscriptions": "Inscrições"
     },
     "article": {
+        "tags": "Editar tags",
+        "newTag": "Nova tag",
+        "addTag": "Adicionar",
+        "noTags": "Sem tags",
         "error": "Falha ao carregar o artigo.",
         "reload": "Recarregar?",
         "empty": "Nenhum artigo",

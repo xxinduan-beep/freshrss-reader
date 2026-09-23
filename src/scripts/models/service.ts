@@ -34,6 +34,13 @@ export interface ServiceHooks {
     ) => AppThunk<Promise<void>>
     star?: (item: RSSItem) => AppThunk
     unstar?: (item: RSSItem) => AppThunk
+    fetchTags?: () => AppThunk<Promise<string[]>>
+    fetchItemTags?: (item: RSSItem) => AppThunk<Promise<string[]>>
+    applyItemTags?: (
+        item: RSSItem,
+        added: string[],
+        removed: string[]
+    ) => AppThunk
 }
 
 export function getServiceHooksFromType(type: SyncService): ServiceHooks {

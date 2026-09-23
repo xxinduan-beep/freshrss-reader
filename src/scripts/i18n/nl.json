@@ -50,6 +50,10 @@
         "subscriptions": "Abonnementen"
     },
     "article": {
+        "tags": "Labels bewerken",
+        "newTag": "Nieuw label",
+        "addTag": "Toevoegen",
+        "noTags": "Geen labels",
         "error": "Het artikel kan niet worden geladen.",
         "reload": "Herladen?",
         "empty": "Geen artikelen",

@@ -50,6 +50,10 @@
         "subscriptions": "Abonnements"
     },
     "article": {
+        "tags": "Tags bearbeiten",
+        "newTag": "Neues Tag",
+        "addTag": "Hinzufügen",
+        "noTags": "Keine Tags vorhanden",
         "error": "Fehler beim Laden des Artikels.",
         "reload": "Neu laden?",
         "empty": "Keine Artikel vorhanden",

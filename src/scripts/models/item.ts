@@ -328,6 +328,38 @@ export function toggleHidden(item: RSSItem): AppThunk {
     }
 }
 
+export function fetchAvailableTags(): AppThunk<Promise<string[]>> {
+    return async dispatch => {
+        const hooks = dispatch(getServiceHooks())
+        if (hooks.fetchTags) return await dispatch(hooks.fetchTags())
+        return []
+    }
+}
+
+export function fetchItemTags(item: RSSItem): AppThunk<Promise<string[]>> {
+    return async dispatch => {
+        const hooks = dispatch(getServiceHooks())
+        if (hooks.fetchItemTags && item.serviceRef) {
+            return await dispatch(hooks.fetchItemTags(item))
+        }
+        return []
+    }
+}
+
+export function updateItemTags(
+    item: RSSItem,
+    added: string[],
+    removed: string[]
+): AppThunk {
+    return dispatch => {
+        if (added.length === 0 && removed.length === 0) return
+        const hooks = dispatch(getServiceHooks())
+        if (hooks.applyItemTags && item.serviceRef) {
+            dispatch(hooks.applyItemTags(item, added, removed))
+        }
+    }
+}
+
 export function itemShortcuts(item: RSSItem, e: KeyboardEvent): AppThunk {
     return dispatch => {
         if (e.metaKey) return

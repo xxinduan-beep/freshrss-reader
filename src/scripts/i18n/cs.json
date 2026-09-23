@@ -51,6 +51,10 @@
         "subscriptions": "Odběry"
     },
     "article": {
+        "tags": "Upravit štítky",
+        "newTag": "Nový štítek",
+        "addTag": "Přidat",
+        "noTags": "Žádné štítky",
         "error": "Nepodařilo se načíst článek.",
         "reload": "Načíst znovu?",
         "empty": "Žádné články",

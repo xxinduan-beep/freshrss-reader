@@ -29,6 +29,10 @@
         "theme": "Teema"
     },
     "article": {
+        "tags": "Muokkaa tunnisteita",
+        "newTag": "Uusi tunniste",
+        "addTag": "Lisää",
+        "noTags": "Ei tunnisteita",
         "dontNotify": "Älä ilmoita",
         "empty": "Ei artikkeleita",
         "error": "Artikkelin lataaminen epäonnistui.",
