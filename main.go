@@ -19,13 +19,37 @@ import (
 	"freshrss-reader/internal/httpclient"
 	"freshrss-reader/internal/server"
 	"freshrss-reader/internal/settings"
+	"freshrss-reader/internal/singleinstance"
 	"freshrss-reader/internal/theme"
+	"freshrss-reader/internal/win"
 )
 
 //go:embed all:dist
 var distFiles embed.FS
 
 func main() {
+	// Single-instance: a second launch notifies the running instance to
+	// show/restore its main window and exits before any GUI is initialised.
+	// activateInstance is wired up once the window exists; an activation
+	// arriving during start-up (window not yet created) is a no-op.
+	var activateInstance func()
+	lock, first, err := singleinstance.Acquire("freshrss-reader", func() {
+		application.InvokeAsync(func() {
+			if activateInstance != nil {
+				activateInstance()
+			}
+		})
+	})
+	if err != nil {
+		log.Printf("single-instance check failed: %v", err)
+	}
+	if err == nil && !first {
+		return
+	}
+	if lock != nil {
+		defer lock.Close()
+	}
+
 	store, err := settings.Open()
 	if err != nil {
 		log.Fatalf("failed to open settings: %v", err)
@@ -55,6 +79,10 @@ func main() {
 		store.GetString("pac", ""),
 	)
 
+	wndProcInterceptor := win.IconWndProcInterceptor(func() bool {
+		return store.GetBool("closeToTray", false)
+	})
+
 	app := application.New(application.Options{
 		Name:        "FreshRSS Reader",
 		Description: "FreshRSS-specific desktop RSS client",
@@ -64,7 +92,7 @@ func main() {
 			Middleware: assetMiddleware(api.Handler()),
 		},
 		Windows: application.WindowsOptions{
-			WndProcInterceptor: iconWndProcInterceptor,
+			WndProcInterceptor: wndProcInterceptor,
 		},
 	})
 	api.App = app
@@ -74,15 +102,15 @@ func main() {
 		app.Event.Emit("theme-updated", shouldUseDark(store))
 	})
 
-	var win application.Window
-	api.Window = func() application.Window { return win }
+	var mainWin application.Window
+	api.Window = func() application.Window { return mainWin }
 	api.ShouldUseDark = func() bool { return shouldUseDark(store) }
-	win = createWindow(app, store)
+	mainWin = createWindow(app, store)
 
 	// Windows tray icon: left click or notification click restores the
 	// window; the right-click menu offers show/quit. The icon is created
 	// for the close-to-tray setting and toggled live from the API layer.
-	tray := newTray(
+	tray := win.NewTray(
 		func() string { return store.GetString("locale", "default") },
 		func() { showMainWindow(api) },
 		func() {
@@ -94,23 +122,21 @@ func main() {
 	tray.SetEnabled(store.GetBool("closeToTray", false))
 	api.TrayNotify = tray.Notify
 	api.SetTrayEnabled = tray.SetEnabled
-	// Minimize-to-tray: SC_MINIMIZE hides the window instead (see
-	// iconWndProcInterceptor).
-	closeToTrayEnabled = func() bool {
-		return store.GetBool("closeToTray", false)
-	}
+	// Activation requests from a second instance restore the window the
+	// same way as tray clicks do (also when it is hidden in the tray).
+	activateInstance = func() { showMainWindow(api) }
 
 	api.RestartWindow = func() {
 		application.InvokeAsync(func() {
-			if win != nil {
-				win.Close()
+			if mainWin != nil {
+				mainWin.Close()
 			}
 			time.Sleep(500 * time.Millisecond)
-			win = createWindow(app, store)
+			mainWin = createWindow(app, store)
 		})
 	}
 
-	registerWindowHooks(app, store, win, tray)
+	registerWindowHooks(app, store, mainWin, tray)
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
@@ -164,26 +190,12 @@ func shouldUseDark(store *settings.Store) bool {
 // window instead of letting the app terminate.
 var quitting bool
 
-// closeToTrayEnabled mirrors the closeToTray setting for the Windows
-// WndProcInterceptor: when on, minimize commands hide the window into the
-// tray instead. Declared here because main.go is built for all platforms;
-// only the Windows interceptor reads it.
-var closeToTrayEnabled func() bool
-
-// showMainWindow restores the window from the tray: hidden and/or minimised
-// windows are shown, restored and focused. Called from tray clicks, which
-// grant the process foreground rights, so Focus() is not blocked by the
-// foreground lock here.
+// showMainWindow restores the window from the tray or from a second-instance
+// activation request: hidden and/or minimised windows are shown, restored
+// and brought to the foreground (see internal/win for the extra work
+// Windows needs to reliably gain foreground).
 func showMainWindow(api *server.API) {
-	win := api.Window()
-	if win == nil {
-		return
-	}
-	win.Show()
-	if win.IsMinimised() {
-		win.UnMinimise()
-	}
-	win.Focus()
+	win.ShowAndFocus(api.Window())
 }
 
 func createWindow(app *application.App, store *settings.Store) application.Window {
@@ -228,7 +240,7 @@ func backgroundColour(store *settings.Store) application.RGBA {
 
 // registerWindowHooks forwards window state changes to the renderer as Wails
 // events using the original Electron channel names, and persists bounds.
-func registerWindowHooks(app *application.App, store *settings.Store, win application.Window, tray *tray) {
+func registerWindowHooks(app *application.App, store *settings.Store, win application.Window, tray *win.Tray) {
 	persist := func() {
 		if win == nil {
 			return

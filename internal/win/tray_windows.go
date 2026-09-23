@@ -1,6 +1,6 @@
 //go:build windows
 
-package main
+package win
 
 import (
 	"log"
@@ -23,9 +23,9 @@ const (
 	ninBalloonUser = 0x0400 + 5 // NIN_BALLOONUSERCLICK (missing from w32)
 )
 
-// tray is created on every platform but is a no-op off Windows
-// (see tray_other.go).
-type tray struct {
+// Tray is created on every platform but is a no-op off Windows (see
+// tray_other.go).
+type Tray struct {
 	hwnd   w32.HWND
 	icon   w32.HICON
 	added  bool
@@ -35,8 +35,10 @@ type tray struct {
 	proc   uintptr
 }
 
-func newTray(locale func() string, show, quit func()) *tray {
-	t := &tray{show: show, quit: quit, locale: locale}
+// NewTray creates the tray icon owner. show is invoked on left clicks and
+// notification clicks, quit from the tray menu.
+func NewTray(locale func() string, show, quit func()) *Tray {
+	t := &Tray{show: show, quit: quit, locale: locale}
 	t.proc = syscall.NewCallback(t.wndProc)
 
 	className, _ := syscall.UTF16PtrFromString("FreshRSSReaderTray")
@@ -64,7 +66,7 @@ func newTray(locale func() string, show, quit func()) *tray {
 	return t
 }
 
-func (t *tray) wndProc(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
+func (t *Tray) wndProc(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
 	switch msg {
 	case wmTrayCallback:
 		switch lParam & 0xffff {
@@ -95,7 +97,7 @@ func (t *tray) wndProc(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintpt
 	return w32.DefWindowProc(hwnd, msg, wParam, lParam)
 }
 
-func (t *tray) nid() w32.NOTIFYICONDATA {
+func (t *Tray) nid() w32.NOTIFYICONDATA {
 	nid := w32.NOTIFYICONDATA{
 		HWnd: t.hwnd,
 		UID:  trayUID,
@@ -105,7 +107,7 @@ func (t *tray) nid() w32.NOTIFYICONDATA {
 }
 
 // SetEnabled adds or removes the tray icon. Safe to call repeatedly.
-func (t *tray) SetEnabled(on bool) {
+func (t *Tray) SetEnabled(on bool) {
 	if t.hwnd == 0 || on == t.added {
 		return
 	}
@@ -125,7 +127,7 @@ func (t *tray) SetEnabled(on bool) {
 	}
 }
 
-func (t *tray) removeIcon() {
+func (t *Tray) removeIcon() {
 	if !t.added {
 		return
 	}
@@ -136,7 +138,7 @@ func (t *tray) removeIcon() {
 
 // Notify shows a tray balloon (a toast on Windows 10+). Clicking it is
 // delivered as ninBalloonUser on wmTrayCallback and restores the window.
-func (t *tray) Notify(title, body string) {
+func (t *Tray) Notify(title, body string) {
 	if t.hwnd == 0 || !t.added {
 		return
 	}
@@ -150,14 +152,14 @@ func (t *tray) Notify(title, body string) {
 	}
 }
 
-func (t *tray) Destroy() {
+func (t *Tray) Destroy() {
 	if t.hwnd != 0 {
 		w32.DestroyWindow(t.hwnd)
 		t.hwnd = 0
 	}
 }
 
-func (t *tray) popupMenu() {
+func (t *Tray) popupMenu() {
 	menu := w32.CreatePopupMenu()
 	if menu == 0 {
 		return
@@ -184,7 +186,7 @@ func (t *tray) popupMenu() {
 }
 
 // menuLabels localises the two menu entries using the locale setting.
-func (t *tray) menuLabels() (show, quit *uint16) {
+func (t *Tray) menuLabels() (show, quit *uint16) {
 	showText, quitText := "Show FreshRSS Reader", "Quit"
 	switch t.locale() {
 	case "zh-CN":
