@@ -87,6 +87,13 @@ type pipeListener struct {
 }
 
 func (l *pipeListener) Close() error {
+	// servePipe is likely blocked in a synchronous ConnectNamedPipe on this
+	// handle. Cancelling the pending I/O first is mandatory: DisconnectNamed
+	// Pipe alone deadlocks against a pending blocking ConnectNamedPipe (both
+	// end up in kernel waits on the same pipe), leaving the process unable
+	// to exit. CancelIoEx aborts the pending connect from any thread; the
+	// servePipe goroutine then returns on ERROR_OPERATION_ABORTED.
+	_ = windows.CancelIoEx(l.handle, nil)
 	_ = windows.DisconnectNamedPipe(l.handle)
 	return windows.CloseHandle(l.handle)
 }

@@ -36,7 +36,6 @@ import {
     switchFilter,
     switchView,
     toggleFilter,
-    markAllReadAndAdvance,
 } from "../scripts/models/page"
 
 export const shareSubmenu = (item: RSSItem): IContextualMenuItem[] => [
@@ -78,8 +77,6 @@ export function ContextMenu() {
             return <ViewContextMenu />
         case ContextMenuType.Group:
             return <GroupContextMenu />
-        case ContextMenuType.MarkRead:
-            return <MarkReadContextMenu />
     }
 }
 
@@ -584,58 +581,6 @@ function GroupContextMenu() {
             iconProps: { iconName: "Settings" },
             onClick: () => {
                 dispatch(toggleSettings(true, sids))
-            },
-        },
-    ]
-    return <ContextMenuBase menuItems={menuItems} />
-}
-
-function MarkReadContextMenu() {
-    const dispatch = useAppDispatch()
-
-    const menuItems: IContextualMenuItem[] = [
-        {
-            key: "section_1",
-            itemType: ContextualMenuItemType.Section,
-            sectionProps: {
-                title: intl.get("nav.markAllRead"),
-                items: [
-                    {
-                        key: "all",
-                        text: intl.get("allArticles"),
-                        iconProps: { iconName: "ReceiptCheck" },
-                        onClick: () => {
-                            dispatch(markAllReadAndAdvance())
-                        },
-                    },
-                    {
-                        key: "1d",
-                        text: intl.get("app.daysAgo", { days: 1 }),
-                        onClick: () => {
-                            let date = new Date()
-                            date.setTime(date.getTime() - 86400000)
-                            dispatch(markAllRead(null, date))
-                        },
-                    },
-                    {
-                        key: "3d",
-                        text: intl.get("app.daysAgo", { days: 3 }),
-                        onClick: () => {
-                            let date = new Date()
-                            date.setTime(date.getTime() - 3 * 86400000)
-                            dispatch(markAllRead(null, date))
-                        },
-                    },
-                    {
-                        key: "7d",
-                        text: intl.get("app.daysAgo", { days: 7 }),
-                        onClick: () => {
-                            let date = new Date()
-                            date.setTime(date.getTime() - 7 * 86400000)
-                            dispatch(markAllRead(null, date))
-                        },
-                    },
-                ],
             },
         },
     ]

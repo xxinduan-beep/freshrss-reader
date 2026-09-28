@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import intl from "react-intl-universal"
 import { FeedProps } from "./feed"
 import {
@@ -16,6 +16,7 @@ import MagazineCard from "../cards/magazine-card"
 import CompactCard from "../cards/compact-card"
 import { Card } from "../cards/card"
 import { useMarkReadOnScroll } from "./use-mark-read-on-scroll"
+import { useScrolledPastItems } from "./use-scrolled-past-items"
 
 const ListFeed: React.FC<FeedProps> = props => {
     // Reset the scroll position to the top whenever the feed content resets
@@ -26,12 +27,23 @@ const ListFeed: React.FC<FeedProps> = props => {
         const container = document.getElementById("refocus")
         if (container) container.scrollTo(0, 0)
     }, [resetKey])
-    const handleScroll = useMarkReadOnScroll(
+    const handleScrollMarkRead = useMarkReadOnScroll(
         window.settings.getScrollMarkReadOn() &&
             Boolean(props.viewConfigs & ViewConfigs.MarkReadOnScroll),
         props.items,
         props.markRead,
         resetKey
+    )
+    const [scrolledPast, handleScrollPast] = useScrolledPastItems(
+        props.items,
+        props.feed._id
+    )
+    const handleScroll = useCallback(
+        (e: React.UIEvent<HTMLElement>) => {
+            handleScrollPast(e)
+            handleScrollMarkRead(e)
+        },
+        [handleScrollPast, handleScrollMarkRead]
     )
 
     const onRenderItem = (item: RSSItem) => {
@@ -120,7 +132,13 @@ const ListFeed: React.FC<FeedProps> = props => {
                         <PrimaryButton
                             id="mark-read"
                             text={intl.get("nav.markAllRead")}
-                            onClick={() => props.markAllRead()}
+                            onClick={() =>
+                                props.markAllRead(
+                                    props.items.filter(i =>
+                                        scrolledPast.has(i._id)
+                                    )
+                                )
+                            }
                         />
                     </div>
                 ) : null}

@@ -8,6 +8,7 @@ import { RSSItem } from "../../scripts/models/item"
 import { List, AnimationClassNames } from "@fluentui/react"
 import { ViewConfigs } from "../../schema-types"
 import { useMarkReadOnScroll } from "./use-mark-read-on-scroll"
+import { useScrolledPastItems } from "./use-scrolled-past-items"
 
 const CardsFeed: React.FC<FeedProps> = props => {
     // Reset the scroll position to the top whenever the feed content resets
@@ -18,12 +19,23 @@ const CardsFeed: React.FC<FeedProps> = props => {
         const container = document.getElementById("refocus")
         if (container) container.scrollTo(0, 0)
     }, [resetKey])
-    const handleScroll = useMarkReadOnScroll(
+    const handleScrollMarkRead = useMarkReadOnScroll(
         window.settings.getScrollMarkReadOn() &&
             Boolean(props.viewConfigs & ViewConfigs.MarkReadOnScroll),
         props.items,
         props.markRead,
         resetKey
+    )
+    const [scrolledPast, handleScrollPast] = useScrolledPastItems(
+        props.items,
+        props.feed._id
+    )
+    const handleScroll = useCallback(
+        (e: React.UIEvent<HTMLElement>) => {
+            handleScrollPast(e)
+            handleScrollMarkRead(e)
+        },
+        [handleScrollPast, handleScrollMarkRead]
     )
     const [width, setWidth] = useState(window.innerWidth)
     const [height, setHeight] = useState(window.innerHeight)
@@ -126,7 +138,13 @@ const CardsFeed: React.FC<FeedProps> = props => {
                         <PrimaryButton
                             id="mark-read"
                             text={intl.get("nav.markAllRead")}
-                            onClick={() => props.markAllRead()}
+                            onClick={() =>
+                                props.markAllRead(
+                                    props.items.filter(i =>
+                                        scrolledPast.has(i._id)
+                                    )
+                                )
+                            }
                         />
                     </div>
                 ) : null}

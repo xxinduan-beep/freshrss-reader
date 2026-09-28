@@ -256,14 +256,6 @@ const settingsBridge = {
         api("settings/set", { key: "scrollMarkReadOn", value: flag })
     },
 
-    getCloseToTray: (): boolean => {
-        return snap("closeToTray", false)
-    },
-    setCloseToTray: (flag: boolean) => {
-        setSnap("closeToTray", flag)
-        api("settings/set", { key: "closeToTray", value: flag })
-    },
-
     getAll: () => {
         return { ...boot.settings }
     },

@@ -16,9 +16,9 @@ const appIconResourceID = 1
 //
 // It also implements minimize-to-tray: intercepting SC_MINIMIZE hides the
 // window directly (the minimize never completes, so no taskbar button is
-// left behind); the tray icon restores it. closeToTray reports whether the
-// setting is currently enabled.
-func IconWndProcInterceptor(closeToTray func() bool) func(hwnd uintptr, msg uint32, wParam, lParam uintptr) (uintptr, bool) {
+// left behind); the tray icon restores it. Closing the window always quits
+// the app.
+func IconWndProcInterceptor() func(hwnd uintptr, msg uint32, wParam, lParam uintptr) (uintptr, bool) {
 	return func(hwnd uintptr, msg uint32, wParam, lParam uintptr) (uintptr, bool) {
 		if msg == w32.WM_GETICON {
 			if icon := w32.LoadIconWithResourceID(w32.GetApplicationHandle(), appIconResourceID); icon != 0 {
@@ -26,10 +26,8 @@ func IconWndProcInterceptor(closeToTray func() bool) func(hwnd uintptr, msg uint
 			}
 		}
 		if msg == w32.WM_SYSCOMMAND && wParam&0xFFF0 == w32.SC_MINIMIZE {
-			if closeToTray != nil && closeToTray() {
-				w32.ShowWindow(w32.HWND(hwnd), w32.SW_HIDE)
-				return 0, true
-			}
+			w32.ShowWindow(w32.HWND(hwnd), w32.SW_HIDE)
+			return 0, true
 		}
 		return 0, false
 	}

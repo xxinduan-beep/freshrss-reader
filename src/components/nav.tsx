@@ -16,7 +16,6 @@ import {
     toggleLogMenu,
     toggleSettings,
     openViewMenu,
-    openMarkAllMenu,
 } from "../scripts/models/app"
 import { toggleSearch, markAllReadAndAdvance } from "../scripts/models/page"
 import { ViewType, WindowStateListenerType } from "../schema-types"
@@ -127,7 +126,6 @@ const Nav: React.FC = () => {
     const logs = useCallback(() => dispatch(toggleLogMenu()), [dispatch])
     const search = useCallback(() => dispatch(toggleSearch()), [dispatch])
     const settings = useCallback(() => dispatch(toggleSettings()), [dispatch])
-    const markAll = useCallback(() => dispatch(openMarkAllMenu()), [dispatch])
     const markAllDirect = useCallback(
         () => dispatch(markAllReadAndAdvance()),
         [dispatch]
@@ -262,20 +260,6 @@ const Nav: React.FC = () => {
                             onClick={fetch}
                             title={intl.get("nav.refresh")}>
                             <Icon iconName="Refresh" />
-                        </FlatButton>
-                        <FlatButton
-                            styleClass={classes.navBtn}
-                            id="mark-all-toggle"
-                            onClick={markAll}
-                            title={intl.get("nav.markAllRead")}
-                            onMouseDown={e => {
-                                if (
-                                    state.contextMenu.event ===
-                                    "#mark-all-toggle"
-                                )
-                                    e.stopPropagation()
-                            }}>
-                            <Icon iconName="InboxCheck" />
                         </FlatButton>
                         <FlatButton
                             styleClass={classes.navBtn}

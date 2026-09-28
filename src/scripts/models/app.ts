@@ -43,7 +43,6 @@ export const enum ContextMenuType {
     View,
     Group,
     Image,
-    MarkRead,
 }
 
 export const enum AppLogType {
@@ -118,7 +117,6 @@ export const OPEN_TEXT_MENU = "OPEN_TEXT_MENU"
 export const OPEN_VIEW_MENU = "OPEN_VIEW_MENU"
 export const OPEN_GROUP_MENU = "OPEN_GROUP_MENU"
 export const OPEN_IMAGE_MENU = "OPEN_IMAGE_MENU"
-export const OPEN_MARK_ALL_MENU = "OPEN_MARK_ALL_MENU"
 
 interface CloseContextMenuAction {
     type: typeof CLOSE_CONTEXT_MENU
@@ -141,10 +139,6 @@ interface OpenViewMenuAction {
     type: typeof OPEN_VIEW_MENU
 }
 
-interface OpenMarkAllMenuAction {
-    type: typeof OPEN_MARK_ALL_MENU
-}
-
 interface OpenGroupMenuAction {
     type: typeof OPEN_GROUP_MENU
     event: MouseEvent
@@ -163,7 +157,6 @@ export type ContextMenuActionTypes =
     | OpenViewMenuAction
     | OpenGroupMenuAction
     | OpenImageMenuAction
-    | OpenMarkAllMenuAction
 
 export const TOGGLE_LOGS = "TOGGLE_LOGS"
 export const PUSH_NOTIFICATION = "PUSH_NOTIFICATION"
@@ -264,10 +257,6 @@ export function openImageMenu(
         position: position,
     }
 }
-
-export const openMarkAllMenu = (): ContextMenuActionTypes => ({
-    type: OPEN_MARK_ALL_MENU,
-})
 
 export function toggleMenu(): AppThunk {
     return (dispatch, getState) => {
@@ -642,17 +631,6 @@ export function appReducer(
                 contextMenu: {
                     type: ContextMenuType.Image,
                     position: action.position,
-                },
-            }
-        case OPEN_MARK_ALL_MENU:
-            return {
-                ...state,
-                contextMenu: {
-                    type:
-                        state.contextMenu.type === ContextMenuType.MarkRead
-                            ? ContextMenuType.Hidden
-                            : ContextMenuType.MarkRead,
-                    event: "#mark-all-toggle",
                 },
             }
         case TOGGLE_MENU:

@@ -127,6 +127,14 @@ func (t *Tray) SetEnabled(on bool) {
 	}
 }
 
+// Active reports whether the tray icon is currently present in the
+// notification area. Used to avoid hiding the main window into a tray
+// that has no icon (e.g. ShellNotifyIcon failed at startup or after a
+// taskbar restart), which would leave the window unreachable.
+func (t *Tray) Active() bool {
+	return t.hwnd != 0 && t.added
+}
+
 func (t *Tray) removeIcon() {
 	if !t.added {
 		return

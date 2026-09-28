@@ -97,5 +97,4 @@ export type SchemaTypes = {
     magazineViewConfigs: ViewConfigs
     compactViewConfigs: ViewConfigs
     scrollMarkReadOn: boolean
-    closeToTray: boolean
 }

@@ -1,4 +1,5 @@
 node_modules
+.kilo
 dist/**/*.js
 dist/**/*.js.map
 dist/griffel.css

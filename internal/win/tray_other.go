@@ -13,3 +13,4 @@ func NewTray(locale func() string, show, quit func()) *Tray {
 func (t *Tray) SetEnabled(on bool)        {}
 func (t *Tray) Notify(title, body string) {}
 func (t *Tray) Destroy()                  {}
+func (t *Tray) Active() bool              { return false }

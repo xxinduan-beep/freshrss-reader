@@ -12,7 +12,6 @@ export function useMarkReadOnScroll(
     const markReadRef = useRef(markRead)
     markReadRef.current = markRead
     const tickingRef = useRef(false)
-    const lastScrollTopRef = useRef(0)
     const seenRef = useRef<Set<number>>(new Set())
     const observerRef = useRef<IntersectionObserver>(null)
 
@@ -20,7 +19,6 @@ export function useMarkReadOnScroll(
     // scroll position and seen-item records so scrolling down from the top
     // marks again.
     useEffect(() => {
-        lastScrollTopRef.current = 0
         seenRef.current = new Set()
     }, [resetKey])
 
@@ -55,28 +53,36 @@ export function useMarkReadOnScroll(
     return useCallback(
         (e: React.UIEvent<HTMLElement>) => {
             const container = e.currentTarget
-            const scrollTop = container.scrollTop
-            const scrolledDown = scrollTop > lastScrollTopRef.current
-            lastScrollTopRef.current = scrollTop
             observeItems(container)
-            if (!enabled || !scrolledDown || tickingRef.current) return
+            if (!enabled || tickingRef.current) return
             tickingRef.current = true
             requestAnimationFrame(() => {
                 tickingRef.current = false
-                const containerTop = container.getBoundingClientRect().top
+                const containerRect = container.getBoundingClientRect()
+                const containerTop = containerRect.top
+                const containerBottom = containerRect.bottom
+                // In either scroll direction, any item that has left the
+                // viewport counts as read: scrolling down moves items out
+                // through the top edge, and at the end of the list the last
+                // items can only leave through the bottom edge when
+                // scrolling back up.
                 let maxOutIndex = -1
+                let minOutIndex = itemsRef.current.length
                 container
                     .querySelectorAll<HTMLElement>("[data-iid]")
                     .forEach(el => {
-                        if (el.getBoundingClientRect().bottom <= containerTop) {
-                            const index = itemsRef.current.findIndex(
-                                i => i._id === Number(el.dataset.iid)
-                            )
+                        const index = itemsRef.current.findIndex(
+                            i => i._id === Number(el.dataset.iid)
+                        )
+                        if (index === -1) return
+                        const rect = el.getBoundingClientRect()
+                        if (rect.bottom <= containerTop) {
                             if (index > maxOutIndex) maxOutIndex = index
+                        } else if (rect.top >= containerBottom) {
+                            if (index < minOutIndex) minOutIndex = index
                         }
                     })
-                for (let i = 0; i <= maxOutIndex; i++) {
-                    const item = itemsRef.current[i]
+                const markItem = (item: RSSItem) => {
                     if (
                         item &&
                         !item.hasRead &&
@@ -84,6 +90,12 @@ export function useMarkReadOnScroll(
                     ) {
                         markReadRef.current(item)
                     }
+                }
+                for (let i = 0; i <= maxOutIndex; i++) {
+                    markItem(itemsRef.current[i])
+                }
+                for (let i = minOutIndex; i < itemsRef.current.length; i++) {
+                    markItem(itemsRef.current[i])
                 }
             })
         },

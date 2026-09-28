@@ -8,6 +8,7 @@ import {
     initFeeds,
     FeedActionTypes,
     INIT_FEED,
+    RSSFeed,
 } from "./feed"
 import { getWindowBreakpoint, AppThunk, ActionStatus } from "../utils"
 import { RSSItem, markAllRead, markRead } from "./item"
@@ -162,6 +163,46 @@ export function markAllReadAndAdvance(): AppThunk<Promise<void>> {
     return async dispatch => {
         await dispatch(markAllRead())
         dispatch(dismissItems())
+        dispatch(selectNextUnreadSource())
+    }
+}
+
+export function markItemsReadAndAdvance(
+    items: RSSItem[]
+): AppThunk<Promise<void>> {
+    return async (dispatch, getState) => {
+        // Mark the given items individually so that only entries actually
+        // displayed during reading are synced as read; never issue a
+        // feed-wide server mark-all that would catch items that arrived
+        // in the meantime.
+        for (let item of items) {
+            if (item && !item.hasRead) dispatch(markRead(item))
+        }
+        const initialFeed = getState().feeds[getState().page.feedId]
+        if (!initialFeed) return
+        // Only in unread-only view do the marked items leave the list; in
+        // that case keep the list filled and move on when the feed runs dry.
+        if (initialFeed.filter.type & FilterType.ShowRead) return
+        dispatch(dismissItems())
+        const hasUnread = (feed: RSSFeed) =>
+            feed.iids.some(iid => {
+                const item = getState().items[iid]
+                return (
+                    item &&
+                    !item.hasRead &&
+                    FeedFilter.testItem(feed.filter, item)
+                )
+            })
+        let feed = getState().feeds[initialFeed._id]
+        if (!feed) return
+        if (hasUnread(feed)) return
+        // The loaded batch is exhausted: pull the next batch of unread
+        // articles from the database so reading can continue.
+        if (!feed.allLoaded) {
+            await dispatch(loadMore(feed)).catch(() => {})
+            feed = getState().feeds[initialFeed._id]
+            if (feed && hasUnread(feed)) return
+        }
         dispatch(selectNextUnreadSource())
     }
 }

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -55,6 +56,28 @@ func main() {
 		log.Fatalf("failed to open settings: %v", err)
 	}
 
+	// Debug aid (FRSS_DEBUG only): when a dump.now file appears next to the
+	// executable, write all goroutine stacks to stacks.txt. Used to diagnose
+	// shutdown hangs where the HTTP debug endpoint is unreachable.
+	if os.Getenv("FRSS_DEBUG") != "" {
+		go func() {
+			dir, err := settings.DataDir()
+			if err != nil {
+				return
+			}
+			for {
+				marker := filepath.Join(dir, "dump.now")
+				if _, err := os.Stat(marker); err == nil {
+					_ = os.Remove(marker)
+					buf := make([]byte, 1<<20)
+					buf = buf[:runtime.Stack(buf, true)]
+					_ = os.WriteFile(filepath.Join(dir, "stacks.txt"), buf, 0o644)
+				}
+				time.Sleep(500 * time.Millisecond)
+			}
+		}()
+	}
+
 	// Portable mode: point the XDG base directories at <exe dir>/cache so
 	// WebKitGTK stores the webview's website data (IndexedDB, localStorage)
 	// and HTTP cache there instead of under ~/.local/share and ~/.cache.
@@ -79,9 +102,7 @@ func main() {
 		store.GetString("pac", ""),
 	)
 
-	wndProcInterceptor := win.IconWndProcInterceptor(func() bool {
-		return store.GetBool("closeToTray", false)
-	})
+	wndProcInterceptor := win.IconWndProcInterceptor()
 
 	app := application.New(application.Options{
 		Name:        "FreshRSS Reader",
@@ -108,31 +129,46 @@ func main() {
 	mainWin = createWindow(app, store)
 
 	// Windows tray icon: left click or notification click restores the
-	// window; the right-click menu offers show/quit. The icon is created
-	// for the close-to-tray setting and toggled live from the API layer.
-	tray := win.NewTray(
+	// window; the right-click menu offers show/quit. The icon is always
+	// present because minimizing hides the window to the tray.
+	var tray *win.Tray
+	tray = win.NewTray(
 		func() string { return store.GetString("locale", "default") },
 		func() { showMainWindow(api) },
 		func() {
 			quitting = true
+			// Runs in the tray window's wndProc on the main thread, so the
+			// icon can be removed synchronously before quitting.
+			tray.Destroy()
 			app.Quit()
 		},
 	)
 	defer tray.Destroy()
-	tray.SetEnabled(store.GetBool("closeToTray", false))
+	tray.SetEnabled(true)
 	api.TrayNotify = tray.Notify
-	api.SetTrayEnabled = tray.SetEnabled
+	api.TrayActive = tray.Active
 	// Activation requests from a second instance restore the window the
 	// same way as tray clicks do (also when it is hidden in the tray).
 	activateInstance = func() { showMainWindow(api) }
 
 	api.RestartWindow = func() {
 		application.InvokeAsync(func() {
-			if mainWin != nil {
-				mainWin.Close()
+			if mainWin == nil {
+				return
 			}
-			time.Sleep(500 * time.Millisecond)
+			restarting = true
+			// Safety net: if the old window's closing hook never fires,
+			// do not leave the flag stuck on (a later close would then
+			// skip the quit path).
+			time.AfterFunc(3*time.Second, func() { restarting = false })
+			old := mainWin
+			// Create the replacement before closing the old window: on
+			// Windows the last window removed from the manager posts the
+			// quit message, so an empty window map mid-restart would kill
+			// the app instead of restarting it.
 			mainWin = createWindow(app, store)
+			registerWindowHooks(app, store, mainWin, tray)
+			old.Close()
 		})
 	}
 
@@ -189,6 +225,10 @@ func shouldUseDark(store *settings.Store) bool {
 // close-to-tray disabled) so the WindowClosing hook does not re-hide the
 // window instead of letting the app terminate.
 var quitting bool
+
+// restarting marks a window restart (settings import) so the old window's
+// closing hook lets itself be destroyed without quitting the app.
+var restarting bool
 
 // showMainWindow restores the window from the tray or from a second-instance
 // activation request: hidden and/or minimised windows are shown, restored
@@ -286,16 +326,27 @@ func registerWindowHooks(app *application.App, store *settings.Store, win applic
 	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		persist()
 		_ = store.Set("windowMaximized", win.IsMaximised())
-		// Close-to-tray: hide instead of quitting so background refresh
-		// keeps running. Windows only, where the tray icon provides a way
-		// back to the window.
-		if runtime.GOOS == "windows" && !quitting &&
-			store.GetBool("closeToTray", false) {
-			win.Hide()
+		// Window restart (settings import): a replacement window already
+		// exists, so let Wails' default close listener destroy this one
+		// without quitting the app.
+		if restarting {
+			restarting = false
+			return
+		}
+		// Closing the window always quits. Dispatch to the main thread so
+		// tray.Destroy can destroy the tray window on its owning thread
+		// (calling it here from the event goroutine fails silently and
+		// leaves a ghost icon). app.Quit() tears down the loop; the default
+		// close listener destroys the window concurrently, which is fine.
+		// The quitting guard keeps the re-emitted close (from cleanup's
+		// window.Close loop) from re-entering this branch.
+		if quitting {
 			return
 		}
 		quitting = true
-		tray.Destroy()
-		app.Quit()
+		application.InvokeSync(func() {
+			tray.Destroy()
+			app.Quit()
+		})
 	})
 }

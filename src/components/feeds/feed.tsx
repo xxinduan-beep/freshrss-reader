@@ -3,7 +3,7 @@ import { useCallback } from "react"
 import { RSSItem, markRead, itemShortcuts } from "../../scripts/models/item"
 import { openItemMenu } from "../../scripts/models/app"
 import { RSSFeed, FeedFilter, loadMore } from "../../scripts/models/feed"
-import { showItem, markAllReadAndAdvance } from "../../scripts/models/page"
+import { showItem, markItemsReadAndAdvance } from "../../scripts/models/page"
 import { useAppSelector, useAppDispatch } from "../../scripts/reducer"
 import { ViewType, ViewConfigs } from "../../schema-types"
 import CardsFeed from "./cards-feed"
@@ -19,7 +19,7 @@ export type FeedProps = {
     filter: FeedFilter
     shortcuts: (item: RSSItem, e: KeyboardEvent) => void
     markRead: (item: RSSItem) => void
-    markAllRead: () => void
+    markAllRead: (items: RSSItem[]) => void
     contextMenu: (feedId: string, item: RSSItem, e) => void
     loadMore: (feed: RSSFeed) => void
     showItem: (fid: string, item: RSSItem) => void
@@ -50,8 +50,8 @@ export const Feed: React.FC<FeedOwnProps> = ({ feedId, viewType }) => {
         (item: RSSItem) => dispatch(markRead(item)),
         []
     )
-    const handleMarkAllRead = useCallback(() => {
-        dispatch(markAllReadAndAdvance())
+    const handleMarkAllRead = useCallback((items: RSSItem[]) => {
+        dispatch(markItemsReadAndAdvance(items))
     }, [])
     const handleContextMenu = useCallback(
         (fid: string, item: RSSItem, e) => dispatch(openItemMenu(item, fid, e)),

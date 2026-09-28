@@ -347,9 +347,7 @@ export const Menu: React.FC = () => {
                                     />
                                 }
                                 unreadCount={totalUnread}
-                                onClick={() =>
-                                    handleAllArticles(selected !== ALL)
-                                }
+                                onClick={() => handleAllArticles(true)}
                             />
                             {groups.length > 0 && (
                                 <StackShim

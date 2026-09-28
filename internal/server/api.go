@@ -29,14 +29,14 @@ const Version = "1.0.0"
 
 // API carries the dependencies shared by all handlers.
 type API struct {
-	Store          *settings.Store
-	Client         *httpclient.Client
-	App            *application.App
-	Window         func() application.Window
-	RestartWindow  func()
-	ShouldUseDark  func() bool
-	TrayNotify     func(title, body string)
-	SetTrayEnabled func(on bool)
+	Store         *settings.Store
+	Client        *httpclient.Client
+	App           *application.App
+	Window        func() application.Window
+	RestartWindow func()
+	ShouldUseDark func() bool
+	TrayNotify    func(title, body string)
+	TrayActive    func() bool
 }
 
 // Handler builds the /api/desktop mux.
@@ -66,7 +66,21 @@ func (a *API) Handler() http.Handler {
 	mux.HandleFunc("GET /api/desktop/window/state", a.windowState)
 	mux.HandleFunc("GET /api/desktop/fonts", a.fonts)
 	mux.HandleFunc("POST /api/desktop/log", a.logMessage)
+	mux.HandleFunc("GET /api/desktop/debug/stacks", a.debugStacks)
 	return mux
+}
+
+// debugStacks dumps all goroutine stacks, gated behind FRSS_DEBUG. Used to
+// diagnose shutdown hangs (e.g. a stuck main thread on Windows).
+func (a *API) debugStacks(w http.ResponseWriter, r *http.Request) {
+	if os.Getenv("FRSS_DEBUG") == "" {
+		http.Error(w, "disabled", http.StatusForbidden)
+		return
+	}
+	buf := make([]byte, 1<<20)
+	buf = buf[:runtime.Stack(buf, true)]
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write(buf)
 }
 
 func (a *API) logMessage(w http.ResponseWriter, r *http.Request) {
@@ -134,11 +148,6 @@ func (a *API) setSetting(w http.ResponseWriter, r *http.Request) {
 	// re-evaluates shouldUseDarkColors and notifies the renderer.
 	if body.Key == "theme" {
 		a.App.Event.Emit("theme-updated", a.ShouldUseDark())
-	}
-	// Toggle the Windows tray icon live when close-to-tray changes.
-	if body.Key == "closeToTray" && a.SetTrayEnabled != nil {
-		on, _ := value.(bool)
-		a.SetTrayEnabled(on)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -446,8 +455,10 @@ func (a *API) closeWindow(w http.ResponseWriter, r *http.Request) {
 func (a *API) minimizeWindow(w http.ResponseWriter, r *http.Request) {
 	if win := a.Window(); win != nil {
 		// Minimize-to-tray: hide instead of minimising so no taskbar
-		// button is left behind; the tray icon restores the window.
-		if runtime.GOOS == "windows" && a.Store.GetBool("closeToTray", false) {
+		// button is left behind; the tray icon restores the window. If
+		// the tray icon is not actually present, fall back to a plain
+		// minimise so the window stays reachable.
+		if runtime.GOOS == "windows" && (a.TrayActive == nil || a.TrayActive()) {
 			win.Hide()
 		} else {
 			win.Minimise()
