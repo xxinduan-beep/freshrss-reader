@@ -40,14 +40,25 @@ idbSchema
     .addIndex("idxDate", ["date"], false, lf.Order.DESC)
     .addIndex("idxService", ["serviceRef"], false)
 
+const pdbSchema = lf.schema.create("pendingDB", 1)
+pdbSchema
+    .createTable("pendingActions")
+    .addColumn("serviceRef", lf.Type.STRING)
+    .addPrimaryKey(["serviceRef"], false)
+    .addColumn("action", lf.Type.STRING)
+
 export let sourcesDB: lf.Database
 export let sources: lf.schema.Table
 export let itemsDB: lf.Database
 export let items: lf.schema.Table
+export let pendingDB: lf.Database
+export let pendingActions: lf.schema.Table
 
 export async function init() {
     sourcesDB = await sdbSchema.connect()
     sources = sourcesDB.getSchema().table("sources")
     itemsDB = await idbSchema.connect()
     items = itemsDB.getSchema().table("items")
+    pendingDB = await pdbSchema.connect()
+    pendingActions = pendingDB.getSchema().table("pendingActions")
 }

@@ -60,14 +60,10 @@ export function useMarkReadOnScroll(
                 tickingRef.current = false
                 const containerRect = container.getBoundingClientRect()
                 const containerTop = containerRect.top
-                const containerBottom = containerRect.bottom
-                // In either scroll direction, any item that has left the
-                // viewport counts as read: scrolling down moves items out
-                // through the top edge, and at the end of the list the last
-                // items can only leave through the bottom edge when
-                // scrolling back up.
+                // Only items that have left the viewport through the top
+                // edge (i.e. passed by while scrolling down) count as read.
+                // Items leaving through the bottom edge must stay unread.
                 let maxOutIndex = -1
-                let minOutIndex = itemsRef.current.length
                 container
                     .querySelectorAll<HTMLElement>("[data-iid]")
                     .forEach(el => {
@@ -78,8 +74,6 @@ export function useMarkReadOnScroll(
                         const rect = el.getBoundingClientRect()
                         if (rect.bottom <= containerTop) {
                             if (index > maxOutIndex) maxOutIndex = index
-                        } else if (rect.top >= containerBottom) {
-                            if (index < minOutIndex) minOutIndex = index
                         }
                     })
                 const markItem = (item: RSSItem) => {
@@ -92,9 +86,6 @@ export function useMarkReadOnScroll(
                     }
                 }
                 for (let i = 0; i <= maxOutIndex; i++) {
-                    markItem(itemsRef.current[i])
-                }
-                for (let i = minOutIndex; i < itemsRef.current.length; i++) {
                     markItem(itemsRef.current[i])
                 }
             })

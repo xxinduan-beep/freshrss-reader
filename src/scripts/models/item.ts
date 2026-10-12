@@ -21,6 +21,8 @@ import {
     syncWithService,
     ServiceActionTypes,
     SYNC_LOCAL_ITEMS,
+    queueItemAction,
+    flushPendingActions,
 } from "./service"
 
 export class RSSItem {
@@ -219,7 +221,8 @@ export function markRead(item: RSSItem): AppThunk {
                 .exec()
             dispatch(markReadDone(item))
             if (item.serviceRef) {
-                dispatch(dispatch(getServiceHooks()).markRead?.(item))
+                dispatch(queueItemAction(item, "read"))
+                dispatch(flushPendingActions())
             }
         }
     }
@@ -236,12 +239,15 @@ export function markAllRead(
             let feed = state.feeds[state.page.feedId]
             sids = feed.sids
         }
-        const action = dispatch(getServiceHooks()).markAllRead?.(
-            sids,
-            date,
-            before
-        )
-        if (action) await dispatch(action)
+        let serverSynced = true
+        const hooks = dispatch(getServiceHooks())
+        if (hooks.markAllRead) {
+            try {
+                await dispatch(hooks.markAllRead(sids, date, before))
+            } catch {
+                serverSynced = false
+            }
+        }
         const predicates: lf.Predicate[] = [
             db.items.source.in(sids),
             db.items.hasRead.eq(false),
@@ -252,11 +258,29 @@ export function markAllRead(
             )
         }
         const query = lf.op.and.apply(null, predicates)
+        if (!serverSynced) {
+            const refRows = await db.itemsDB
+                .select(db.items.serviceRef)
+                .from(db.items)
+                .where(query)
+                .exec()
+            for (let row of refRows) {
+                if (row["serviceRef"]) {
+                    dispatch(
+                        queueItemAction(
+                            { serviceRef: row["serviceRef"] } as RSSItem,
+                            "read"
+                        )
+                    )
+                }
+            }
+        }
         await db.itemsDB
             .update(db.items)
             .set(db.items.hasRead, true)
             .where(query)
             .exec()
+        if (!serverSynced) dispatch(flushPendingActions())
         if (date) {
             dispatch({
                 type: MARK_ALL_READ,
@@ -285,7 +309,8 @@ export function markUnread(item: RSSItem): AppThunk {
                 .exec()
             dispatch(markUnreadDone(item))
             if (item.serviceRef) {
-                dispatch(dispatch(getServiceHooks()).markUnread?.(item))
+                dispatch(queueItemAction(item, "unread"))
+                dispatch(flushPendingActions())
             }
         }
     }
@@ -305,9 +330,8 @@ export function toggleStarred(item: RSSItem): AppThunk {
             .exec()
         dispatch(toggleStarredDone(item))
         if (item.serviceRef) {
-            const hooks = dispatch(getServiceHooks())
-            if (item.starred) dispatch(hooks.unstar?.(item))
-            else dispatch(hooks.star?.(item))
+            dispatch(queueItemAction(item, item.starred ? "unstar" : "star"))
+            dispatch(flushPendingActions())
         }
     }
 }
@@ -477,7 +501,13 @@ export function itemReducer(
         case SYNC_LOCAL_ITEMS: {
             let nextState = { ...state }
             for (let item of Object.values(state)) {
-                if (item.hasOwnProperty("serviceRef")) {
+                if (
+                    item.hasOwnProperty("serviceRef") &&
+                    !(
+                        action.pendingIds &&
+                        action.pendingIds.has(item.serviceRef)
+                    )
+                ) {
                     const nextItem = { ...item }
                     nextItem.hasRead = !action.unreadIds.has(item.serviceRef)
                     nextItem.starred = action.starredIds.has(item.serviceRef)

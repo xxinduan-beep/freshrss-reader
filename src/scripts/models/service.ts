@@ -58,6 +58,84 @@ export function getServiceHooks(): AppThunk<ServiceHooks> {
     }
 }
 
+export type PendingAction = "read" | "unread" | "star" | "unstar"
+
+let flushingPending = false
+
+export async function getPendingActions(): Promise<Map<string, PendingAction>> {
+    const rows = await db.pendingDB.select().from(db.pendingActions).exec()
+    const map = new Map<string, PendingAction>()
+    for (let row of rows) {
+        map.set(row["serviceRef"], row["action"])
+    }
+    return map
+}
+
+export function queueItemAction(
+    item: RSSItem,
+    action: PendingAction
+): AppThunk<Promise<void>> {
+    return async () => {
+        if (!item.serviceRef) return
+        const row = db.pendingActions.createRow({
+            serviceRef: item.serviceRef,
+            action: action,
+        })
+        await db.pendingDB
+            .insertOrReplace()
+            .into(db.pendingActions)
+            .values([row])
+            .exec()
+    }
+}
+
+export function flushPendingActions(): AppThunk<Promise<void>> {
+    return async (dispatch, getState) => {
+        if (flushingPending) return
+        if (getState().service.type === SyncService.None) return
+        flushingPending = true
+        try {
+            const hooks = dispatch(getServiceHooks())
+            const pending = await getPendingActions()
+            for (let [ref, action] of pending) {
+                const rows = await db.itemsDB
+                    .select(db.items._id)
+                    .from(db.items)
+                    .where(db.items.serviceRef.eq(ref))
+                    .limit(1)
+                    .exec()
+                if (rows.length === 0) {
+                    await db.pendingDB
+                        .delete()
+                        .from(db.pendingActions)
+                        .where(db.pendingActions.serviceRef.eq(ref))
+                        .exec()
+                    continue
+                }
+                const item = { serviceRef: ref } as RSSItem
+                const thunk =
+                    action === "read"
+                        ? hooks.markRead?.(item)
+                        : action === "unread"
+                        ? hooks.markUnread?.(item)
+                        : action === "star"
+                        ? hooks.star?.(item)
+                        : hooks.unstar?.(item)
+                try {
+                    if (thunk) await dispatch(thunk)
+                    await db.pendingDB
+                        .delete()
+                        .from(db.pendingActions)
+                        .where(db.pendingActions.serviceRef.eq(ref))
+                        .exec()
+                } catch {}
+            }
+        } finally {
+            flushingPending = false
+        }
+    }
+}
+
 export function syncWithService(background = false): AppThunk<Promise<void>> {
     return async (dispatch, getState) => {
         const hooks = dispatch(getServiceHooks())
@@ -68,6 +146,7 @@ export function syncWithService(background = false): AppThunk<Promise<void>> {
                     status: ActionStatus.Request,
                 })
                 if (hooks.reauthenticate) await dispatch(reauthenticate(hooks))
+                await dispatch(flushPendingActions())
                 await dispatch(updateSources(hooks.updateSources))
                 await dispatch(syncItems(hooks.syncItems))
                 await dispatch(fetchItems(hooks.fetchItems, background))
@@ -187,6 +266,7 @@ export function fetchSourceUnread(sids: number[]): AppThunk<Promise<void>> {
 function syncItems(hook: ServiceHooks["syncItems"]): AppThunk<Promise<void>> {
     return async (dispatch, getState) => {
         const state = getState()
+        const pending = await getPendingActions()
         const [unreadRefs, starredRefs] = await dispatch(hook())
         const unreadCopy = new Set(unreadRefs)
         const starredCopy = new Set(starredRefs)
@@ -206,6 +286,7 @@ function syncItems(hook: ServiceHooks["syncItems"]): AppThunk<Promise<void>> {
         const updates = new Array<lf.query.Update>()
         for (let row of rows) {
             const serviceRef = row["serviceRef"]
+            if (pending.has(serviceRef)) continue
             if (row["hasRead"] === false && !unreadRefs.delete(serviceRef)) {
                 updates.push(
                     db.itemsDB
@@ -224,6 +305,7 @@ function syncItems(hook: ServiceHooks["syncItems"]): AppThunk<Promise<void>> {
             }
         }
         for (let unread of unreadRefs) {
+            if (pending.has(unread)) continue
             updates.push(
                 db.itemsDB
                     .update(db.items)
@@ -232,6 +314,7 @@ function syncItems(hook: ServiceHooks["syncItems"]): AppThunk<Promise<void>> {
             )
         }
         for (let starred of starredRefs) {
+            if (pending.has(starred)) continue
             updates.push(
                 db.itemsDB
                     .update(db.items)
@@ -242,7 +325,13 @@ function syncItems(hook: ServiceHooks["syncItems"]): AppThunk<Promise<void>> {
         if (updates.length > 0) {
             await db.itemsDB.createTransaction().exec(updates)
             await dispatch(updateUnreadCounts())
-            dispatch(syncLocalItems(unreadCopy, starredCopy))
+            for (let ref of pending.keys()) {
+                unreadCopy.delete(ref)
+                starredCopy.delete(ref)
+            }
+            dispatch(
+                syncLocalItems(unreadCopy, starredCopy, new Set(pending.keys()))
+            )
         }
     }
 }
@@ -324,6 +413,7 @@ export function removeService(): AppThunk<Promise<void>> {
                 await dispatch(deleteSource(s, true))
             })
         await Promise.all(promises)
+        await db.pendingDB.delete().from(db.pendingActions).exec()
         dispatch(saveServiceConfigs({ type: SyncService.None }))
         dispatch(saveSettings())
     }
@@ -348,6 +438,7 @@ interface SyncLocalItemsAction {
     type: typeof SYNC_LOCAL_ITEMS
     unreadIds: Set<string>
     starredIds: Set<string>
+    pendingIds?: Set<string>
 }
 
 export type ServiceActionTypes =
@@ -367,12 +458,14 @@ export function saveServiceConfigs(configs: ServiceConfigs): AppThunk {
 
 function syncLocalItems(
     unread: Set<string>,
-    starred: Set<string>
+    starred: Set<string>,
+    pendingIds?: Set<string>
 ): ServiceActionTypes {
     return {
         type: SYNC_LOCAL_ITEMS,
         unreadIds: unread,
         starredIds: starred,
+        pendingIds: pendingIds,
     }
 }
 

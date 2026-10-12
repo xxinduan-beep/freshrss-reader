@@ -562,22 +562,30 @@ export const freshRSSServiceHooks: ServiceHooks = {
                 .exec()
             const refs = rows.map(row => row["serviceRef"]).join("&i=")
             if (refs) {
-                editTag(getState().service as FreshRSSConfigs, refs, READ_TAG)
+                await editTag(
+                    getState().service as FreshRSSConfigs,
+                    refs,
+                    READ_TAG
+                )
             }
         } else {
             const sources = sids.map(sid => state.sources[sid])
+            const requests = new Array<Promise<unknown>>()
             for (let source of sources) {
                 if (source.serviceRef) {
                     const body = new URLSearchParams()
                     body.set("s", source.serviceRef)
-                    fetchAPI(
-                        configs,
-                        "/reader/api/0/mark-all-as-read",
-                        "POST",
-                        body
+                    requests.push(
+                        fetchAPI(
+                            configs,
+                            "/reader/api/0/mark-all-as-read",
+                            "POST",
+                            body
+                        )
                     )
                 }
             }
+            await Promise.all(requests)
         }
     },
 
